@@ -747,6 +747,8 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
           activity: [makeActivity("Revision note added", revisionNote.trim()), ...(next.activity || [])],
         };
       }
+      supabase.from("requests").upsert({ id: next.id, data: next })
+        .then(({ error }) => { if (error) console.error("[Supabase] status sync failed:", error.message); });
       return next;
     }));
   };
@@ -1035,20 +1037,25 @@ export default function CreativeBriefBuilderPrototype() {
     const revisionNote = status === "For Revision"
       ? (window.prompt("Add revision note for this task. Leave blank if there is no specific note yet.") || "")
       : "";
-    setRequests((prev) => prev.map((r) => {
-      if (r.id !== id || r.status === status) return r;
-      let next = { ...r, status, activity: [makeActivity("Status changed", `${r.status} → ${status}`), ...(r.activity || [])] };
-      if (revisionNote.trim()) {
-        const revisionComment = { id: uid("COM"), type: "Revision", author: "Current User", body: revisionNote.trim(), createdAt: new Date().toISOString() };
-        next = {
-          ...next,
-          comments: [...(next.comments || []), revisionComment],
-          unreadComments: (next.unreadComments || 0) + 1,
-          activity: [makeActivity("Revision note added", revisionNote.trim()), ...(next.activity || [])],
-        };
-      }
+    setRequests((prev) => {
+      const next = prev.map((r) => {
+        if (r.id !== id || r.status === status) return r;
+        let updated = { ...r, status, activity: [makeActivity("Status changed", `${r.status} → ${status}`), ...(r.activity || [])] };
+        if (revisionNote.trim()) {
+          const revisionComment = { id: uid("COM"), type: "Revision", author: "Current User", body: revisionNote.trim(), createdAt: new Date().toISOString() };
+          updated = {
+            ...updated,
+            comments: [...(updated.comments || []), revisionComment],
+            unreadComments: (updated.unreadComments || 0) + 1,
+            activity: [makeActivity("Revision note added", revisionNote.trim()), ...(updated.activity || [])],
+          };
+        }
+        supabase.from("requests").upsert({ id: updated.id, data: updated })
+          .then(({ error }) => { if (error) console.error("[Supabase] status sync failed:", error.message); });
+        return updated;
+      });
       return next;
-    }));
+    });
     setDragId(null);
     setDragOverStatus(null);
   };
