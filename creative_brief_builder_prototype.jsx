@@ -955,18 +955,24 @@ export default function CreativeBriefBuilderPrototype() {
       return;
     }
     const prev = prevRequests.current;
-    requests.forEach((r) => {
-      const old = prev.find((p) => p.id === r.id);
-      if (!old || JSON.stringify(old) !== JSON.stringify(r)) {
-        supabase.from("requests").upsert({ id: r.id, data: r });
-      }
-    });
-    prev.forEach((r) => {
-      if (!requests.find((c) => c.id === r.id)) {
-        supabase.from("requests").delete().eq("id", r.id);
-      }
-    });
     prevRequests.current = requests;
+
+    const toUpsert = requests.filter((r) => {
+      const old = prev.find((p) => p.id === r.id);
+      return !old || JSON.stringify(old) !== JSON.stringify(r);
+    });
+    const toDelete = prev.filter((r) => !requests.find((c) => c.id === r.id));
+
+    if (toUpsert.length > 0) {
+      supabase
+        .from("requests")
+        .upsert(toUpsert.map((r) => ({ id: r.id, data: r })))
+        .then(({ error }) => { if (error) console.error("[Supabase] upsert failed:", error.message, error); });
+    }
+    toDelete.forEach((r) => {
+      supabase.from("requests").delete().eq("id", r.id)
+        .then(({ error }) => { if (error) console.error("[Supabase] delete failed:", error.message, error); });
+    });
   }, [requests]);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
