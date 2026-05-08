@@ -1,857 +1,1164 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 
-const LS_KEY = "creative_request_builder_kanban_v6";
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+const MAX_REFERENCE_IMAGES = 14;
 
-const STATUSES = [
-  { key: "Submitted", title: "Submitted", helper: "New creative requests", color: "#8b5cf6" },
-  { key: "In Progress", title: "In Progress", helper: "Currently being designed", color: "#f59e0b" },
-  { key: "For Review", title: "For Review", helper: "Awaiting approval", color: "#3b82f6" },
-  { key: "Done", title: "Done", helper: "Completed requests", color: "#22c55e" },
+const STATUS_COLUMNS = ["To Do", "In Progress", "For Review", "For Revision", "Done"];
+const DELIVERABLE_STATUSES = ["To Do", "In Progress", "For Review", "For Revision", "Done"];
+const COMMENT_TYPES = ["General", "Clarification", "Revision", "Approval"];
+const ASSET_PROMPT_TYPES = ["Key Visual", "Background", "Character / Mascot", "3D Object", "Scene Reference"];
+
+const MATERIAL_PRESETS = [
+  { id: "a4", label: "A4 Poster", width: "210", height: "297", unit: "mm", category: "Print" },
+  { id: "letter", label: "Letter Flyer", width: "8.5", height: "11", unit: "in", category: "Print" },
+  { id: "pullup", label: "Pull-up Banner", width: "3", height: "5", unit: "ft", category: "Print" },
+  { id: "socmed-square", label: "Social Media Square", width: "1080", height: "1080", unit: "px", category: "Social Media" },
+  { id: "socmed-portrait", label: "Social Media Portrait", width: "1080", height: "1350", unit: "px", category: "Social Media" },
+  { id: "story", label: "Story / Reels Cover", width: "1080", height: "1920", unit: "px", category: "Social Media" },
+  { id: "web", label: "Web Banner", width: "1440", height: "560", unit: "px", category: "Digital" },
+  { id: "mobile", label: "Mobile Banner", width: "390", height: "420", unit: "px", category: "Digital" },
+  { id: "tablet", label: "Tablet Banner", width: "1024", height: "480", unit: "px", category: "Digital" },
+  { id: "logo", label: "Logo / Brand Mark", width: "N/A", height: "N/A", unit: "N/A", category: "Branding" },
 ];
 
-const UNITS = ["px", "in", "ft", "mm", "m"];
-const REFERENCE_TAGS = ["Mood", "Color", "Layout", "Style", "Assets", "Typography"];
-
-const DELIVERABLE_PRESETS = [
-  { id: "socmed-portrait", label: "Social Media Portrait", width: "1080", height: "1350", unit: "px", group: "Social Media" },
-  { id: "socmed-square", label: "Social Media Square", width: "1080", height: "1080", unit: "px", group: "Social Media" },
-  { id: "socmed-story", label: "Social Media Story/Reel", width: "1080", height: "1920", unit: "px", group: "Social Media" },
-  { id: "fb-cover", label: "Facebook Cover", width: "820", height: "312", unit: "px", group: "Social Media" },
-  { id: "a4", label: "A4 Poster", width: "210", height: "297", unit: "mm", group: "Print" },
-  { id: "letter", label: "Letter Flyer", width: "8.5", height: "11", unit: "in", group: "Print" },
-  { id: "pullup", label: "Pull-up Banner", width: "3", height: "5", unit: "ft", group: "Print" },
-  { id: "web-banner", label: "Web Banner", width: "1440", height: "560", unit: "px", group: "Digital" },
-  { id: "mobile-banner", label: "Mobile Banner", width: "390", height: "420", unit: "px", group: "Digital" },
-  { id: "tablet-banner", label: "Tablet Banner", width: "1024", height: "480", unit: "px", group: "Digital" },
-  { id: "logo", label: "Logo", width: "", height: "", unit: "N/A", group: "Branding" },
+const REQUESTORS = [
+  "Marketing Manager",
+  "Marketing Associate",
+  "Boss / Approver",
+  "Retail / Outlet Team",
+  "Operations Team",
+  "Other Requestor",
 ];
 
-const DEFAULT_BRAND_PROFILES = [
-  {
-    id: "brand-lakiwin",
-    name: "LakiWin",
-    description: "E-casino and land-based outlet brand with a bold, reward-focused retail promo feel.",
-    tone: "Energetic, approachable, fun, high-contrast, promotional, easy to understand.",
-    colors: "Primary yellows #FAB403 and #FAD403. Support with #221F1F, #404040, white, and controlled warm orange/gold gradients.",
-    typography: "Primary: Boontook Mon. Secondary: Gontserrat. Use bold rounded headlines and readable support copy.",
-    motifs: "Glow trails, light bursts, reward highlights, carnival/arcade energy, warm golden lighting, controlled casino-adjacent excitement.",
-    dos: "Keep yellow dominant. Build clear hierarchy. Make CTA and promo mechanics readable. Use one strong campaign system across sizes.",
-    donts: "Do not make layouts messy. Avoid generic stock-casino clutter. Avoid explicit gambling visuals when placement is sensitive. Do not dilute brand yellow.",
-    compliance: "Leave room for required PAGCOR/responsible gaming marks when needed. Avoid risky claims or overly literal gambling depictions.",
-    aiNotes: "Act like a creative director for a LakiWin promo. Be specific, visual, and opinionated. Prioritize reward anticipation, clarity, and production-ready KV direction.",
-  },
-  {
-    id: "brand-vikingfunland",
-    name: "VikingFunLand",
-    description: "Arcade-token-meets-casino entertainment concept with playful Viking/funland cues.",
-    tone: "Adventurous, playful, nostalgic, arcade-like, bold, slightly fantastical but still commercial.",
-    colors: "Warm gold/yellow token colors, deep navy or charcoal support, icy blue accents, white highlights.",
-    typography: "Bold display headline with friendly rounded sans support. Avoid medieval fonts that hurt readability.",
-    motifs: "Tokens, arcade glow, playful shields, Viking hints, funland lights, treasure/reward cues, stylized game-world atmosphere.",
-    dos: "Make it feel like a modern arcade reward world. Use Viking cues as accent, not costume overload. Keep layouts readable and punchy.",
-    donts: "Do not overdo horns, weapons, or dark fantasy. Avoid muddy medieval palettes. Do not sacrifice clarity for theme.",
-    compliance: "Keep visuals entertainment-focused and safe. Avoid aggressive weapon imagery and explicit gambling mechanics where risky.",
-    aiNotes: "Generate a playful but controlled creative direction that merges arcade reward energy with light Viking/funland identity cues.",
-  },
-];
+const DESIGNERS = ["Unassigned", "Senior Designer", "Designer A", "Designer B", "Designer C"];
 
 const blankForm = {
   title: "",
-  brandId: "brand-lakiwin",
+  brand: "LakiWin",
   outputMode: "Static",
-  deliverables: [],
   requestDetails: "",
+  deliverables: [],
   deadline: "",
   requestor: "",
-  referenceLinks: "",
-  referenceTags: [],
-  files: [],
+  assignedTo: "Unassigned",
+  referenceImages: [],
+  referenceNotes: "",
 };
 
-const blankCustomDeliverable = { label: "", width: "", height: "", unit: "px" };
+const blankDraft = { name: "", width: "", height: "", unit: "px" };
 
 const css = `
   * { box-sizing: border-box; }
   body { margin: 0; }
-  .app { min-height: 100vh; background: #f7f7fb; color: #17171c; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-  .topbar { height: 58px; position: sticky; top: 0; z-index: 40; background: rgba(255,255,255,.93); backdrop-filter: blur(12px); border-bottom: 1px solid #ececf1; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; gap: 16px; }
-  .brand-lockup { display: flex; align-items: center; gap: 12px; min-width: 236px; }
-  .logo { width: 34px; height: 34px; border-radius: 12px; background: #17171c; color: white; display: inline-flex; align-items: center; justify-content: center; font-weight: 950; }
-  .workspace { border: 1px solid #ececf1; border-radius: 999px; background: white; padding: 8px 12px; font-weight: 800; font-size: 13px; }
-  .top-actions { display: flex; align-items: center; gap: 10px; min-width: 0; }
-  .global-search { width: min(420px, 34vw); border-radius: 999px; background: #f4f5fb; }
-  .shell { display: grid; grid-template-columns: 218px minmax(0, 1fr); min-height: calc(100vh - 58px); }
-  .sidebar { background: white; border-right: 1px solid #ececf1; padding: 18px 12px; position: sticky; top: 58px; height: calc(100vh - 58px); }
-  .side-item { width: 100%; border: 0; background: transparent; border-radius: 12px; padding: 11px 12px; display: flex; align-items: center; gap: 10px; font-weight: 800; color: #52525b; cursor: pointer; text-align: left; }
-  .side-item:hover { background: #f4f4f7; color: #17171c; }
-  .side-item.active { background: #7c3aed; color: white; box-shadow: 0 8px 20px rgba(124,58,237,.22); }
-  .side-section { color: #a1a1aa; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 950; margin: 18px 12px 8px; }
-  .main { min-width: 0; padding: 26px 34px 34px; }
-  .main-inner { width: min(1280px, 100%); margin: 0 auto; }
-  .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; flex-wrap: wrap; margin-bottom: 18px; }
-  h1, h2, h3, h4 { margin: 0; }
-  h1 { font-size: 26px; letter-spacing: -.035em; }
-  h2 { font-size: 18px; letter-spacing: -.02em; }
-  h3 { font-size: 15px; }
-  p { line-height: 1.5; }
-  .muted { color: #71717a; }
-  .tiny { color: #8a8a96; font-size: 12px; }
-  .readable { max-width: 74ch; }
-  .btn { border: 0; border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 900; cursor: pointer; background: #17171c; color: #fff; white-space: nowrap; }
-  .btn:hover { filter: brightness(.96); }
-  .btn.secondary { border: 1px solid #dedee7; background: white; color: #17171c; }
-  .btn.ghost { border: 0; background: transparent; color: #52525b; padding: 8px 9px; }
-  .btn.purple { background: #7c3aed; }
-  .btn.danger { border: 1px solid #fecaca; background: #fff; color: #991b1b; }
-  .btn.full { width: 100%; }
-  .btn:disabled { opacity: .46; cursor: not-allowed; }
-  input, textarea, select { width: 100%; border: 1px solid #dedee7; border-radius: 12px; padding: 9px 11px; font-size: 14px; outline: none; background: white; color: #17171c; font-family: inherit; }
-  textarea { min-height: 96px; resize: vertical; line-height: 1.45; }
-  label { font-size: 11px; font-weight: 950; text-transform: uppercase; letter-spacing: .06em; color: #8a8a96; display: block; margin-bottom: 7px; }
-  .field { margin-bottom: 13px; }
-  .card { background: white; border: 1px solid #e7e7ee; border-radius: 18px; box-shadow: 0 2px 8px rgba(15,23,42,.04); overflow: hidden; }
-  .card-head { padding: 14px 16px; border-bottom: 1px solid #f0f0f5; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .card-body { padding: 16px; }
-  .section { margin-bottom: 14px; }
+  .app { min-height: 100vh; background: #f4f4f5; color: #18181b; font-family: Inter, Arial, sans-serif; }
+  .header { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.94); border-bottom: 1px solid #e4e4e7; backdrop-filter: blur(8px); }
+  .header-inner { max-width: 1240px; margin: 0 auto; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .container { max-width: 1240px; margin: 0 auto; padding: 20px; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 20px; align-items: start; }
+  .card { background: white; border: 1px solid #e4e4e7; border-radius: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.05); margin-bottom: 16px; overflow: hidden; }
+  .card-header { padding: 16px 18px; border-bottom: 1px solid #f1f1f1; font-weight: 800; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .card-title { display: flex; align-items: center; gap: 10px; }
+  .card-body { padding: 18px; }
+  .section-num { width: 26px; height: 26px; border-radius: 999px; background: #18181b; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; flex: 0 0 auto; }
+  label, .field-label { font-size: 12px; font-weight: 850; display: block; margin-bottom: 6px; color: #71717a; text-transform: uppercase; letter-spacing: .04em; }
+  input, textarea, select { width: 100%; border: 1px solid #d4d4d8; border-radius: 12px; padding: 10px 12px; font-size: 14px; outline: none; background: white; color: #18181b; }
+  textarea { min-height: 110px; resize: vertical; line-height: 1.45; }
+  input:focus, textarea:focus, select:focus { border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139,92,246,.12); }
+  .field { margin-bottom: 14px; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .three-row { display: grid; grid-template-columns: 1fr 1fr 88px; gap: 10px; }
-  .inline-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #dedee7; border-radius: 999px; padding: 5px 9px; font-size: 12px; font-weight: 800; background: white; color: #3f3f46; margin: 2px; }
-  .pill.purple { background: #f3e8ff; color: #6d28d9; border-color: #e9d5ff; }
+  .three-row { display: grid; grid-template-columns: 1fr 1fr 100px; gap: 10px; }
+  .btn { border: 0; border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 850; cursor: pointer; background: #18181b; color: #fff; transition: transform .08s ease, opacity .12s ease; }
+  .btn:hover { transform: translateY(-1px); }
+  .btn.secondary { border: 1px solid #d4d4d8; background: white; color: #18181b; }
+  .btn.ghost { background: transparent; color: #18181b; padding: 6px 8px; }
+  .btn.purple { background: #7c3aed; }
+  .btn.danger { border: 1px solid #fecaca; background: white; color: #991b1b; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #d4d4d8; border-radius: 999px; padding: 6px 10px; font-size: 13px; font-weight: 800; background: white; color: #3f3f46; line-height: 1; }
   .pill.blue { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+  .pill.red { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
   .pill.yellow { background: #fffbeb; color: #92400e; border-color: #fde68a; }
-  .pill.green { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
-  .pill.red { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
-  .pill.gray { background: #f4f4f5; color: #52525b; border-color: #e4e4e7; }
-  .tabs { display: inline-flex; align-items: center; gap: 6px; padding: 5px; border-radius: 999px; background: white; border: 1px solid #ececf1; }
-  .tab { border: 0; border-radius: 999px; padding: 8px 14px; background: transparent; font-weight: 850; color: #52525b; cursor: pointer; }
-  .tab.active { background: #7c3aed; color: white; box-shadow: 0 5px 14px rgba(124,58,237,.20); }
-  .filters { display: grid; grid-template-columns: minmax(240px, 1fr) 160px 150px 150px; gap: 10px; align-items: center; margin-bottom: 16px; }
-  .stat-row { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .stat-card { background: white; border: 1px solid #ececf1; border-radius: 16px; padding: 14px; }
-  .stat-card strong { font-size: 22px; display: block; }
-  .board-wrap { overflow-x: auto; padding-bottom: 12px; }
-  .board { display: grid; grid-template-columns: repeat(4, minmax(280px, 1fr)); gap: 16px; min-width: 1120px; }
-  .column { background: #f0f1f7; border: 1px solid #e5e7ef; border-radius: 18px; padding: 12px; min-height: 64vh; }
-  .column-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 2px 4px 10px; }
-  .column-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 950; }
-  .dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
-  .add-task { width: 100%; border: 1px dashed #d5d7e2; background: rgba(255,255,255,.65); border-radius: 14px; padding: 10px; font-weight: 850; color: #6b7280; cursor: pointer; margin-bottom: 10px; }
-  .task-card { background: white; border: 1px solid #e6e6ee; border-radius: 16px; padding: 12px; box-shadow: 0 3px 12px rgba(15,23,42,.05); margin-bottom: 10px; cursor: pointer; transition: transform .14s ease, box-shadow .14s ease; }
-  .task-card:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(15,23,42,.10); }
-  .task-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
-  .task-tags { display: flex; gap: 4px; flex-wrap: wrap; min-width: 0; }
-  .task-title { font-size: 14px; font-weight: 950; line-height: 1.25; margin: 8px 0 5px; }
-  .task-brief { color: #60606c; font-size: 12px; line-height: 1.38; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 33px; }
-  .task-footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; border-top: 1px solid #f1f1f5; padding-top: 10px; margin-top: 10px; }
-  .task-meta { display: flex; align-items: center; gap: 9px; color: #71717a; font-size: 12px; flex-wrap: wrap; }
-  .avatar { width: 24px; height: 24px; border-radius: 999px; background: #17171c; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 950; }
-  .builder-layout, .details-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(360px, 410px); gap: 28px; align-items: start; }
-  .builder-main, .detail-main { min-width: 0; }
-  .sticky-panel { position: sticky; top: 82px; max-height: calc(100vh - 104px); overflow: auto; }
-  .sticky-panel .card { border-radius: 20px; }
-  .segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .segment { border: 1px solid #dedee7; background: white; border-radius: 14px; padding: 11px 12px; text-align: left; cursor: pointer; }
-  .segment strong { display: block; margin-bottom: 2px; }
-  .segment.active { border-color: #7c3aed; background: #f6f0ff; box-shadow: inset 0 0 0 1px #7c3aed; }
-  .suggestions { border: 1px solid #e4e4ec; border-radius: 14px; overflow: hidden; margin-top: 8px; background: white; }
-  .suggestion { width: 100%; border: 0; background: white; padding: 10px 12px; text-align: left; cursor: pointer; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
-  .suggestion:hover { background: #f7f7fb; }
-  .deliverable-list { display: grid; gap: 8px; margin-top: 10px; }
-  .list-item { border: 1px solid #e6e6ee; border-radius: 14px; padding: 10px; background: #fcfcfd; display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
-  .custom-box { border: 1px dashed #d8d8e4; border-radius: 16px; padding: 12px; background: #fbfbff; margin-top: 12px; }
-  .note { border-radius: 14px; padding: 10px 11px; font-size: 13px; line-height: 1.4; border: 1px solid #e4e4e7; background: #fafafa; margin-bottom: 8px; }
-  .note.warn { background: #fffbeb; color: #92400e; border-color: #fde68a; }
-  .note.good { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
-  .note.purple { background: #f5f3ff; color: #5b21b6; border-color: #ddd6fe; }
-  .read-card { background: white; border: 1px solid #e7e7ee; border-radius: 18px; padding: 18px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(15,23,42,.04); }
-  .read-card h3 { margin-bottom: 12px; }
-  .brief-text { max-width: 72ch; font-size: 15px; line-height: 1.55; }
-  .kv-stack { display: grid; gap: 14px; max-width: 72ch; }
-  .kv-item strong { display: block; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #8a8a96; margin-bottom: 4px; }
-  .kv-item p { margin: 0; }
-  .hierarchy-grid { display: grid; gap: 10px; max-width: 72ch; }
-  .hierarchy-row { border: 1px solid #ededf2; background: #fcfcfd; border-radius: 14px; padding: 10px 11px; }
-  .hierarchy-row strong { display: block; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: #8a8a96; margin-bottom: 3px; }
-  .prompt-preview { white-space: pre-wrap; max-width: 72ch; color: #3f3f46; font-size: 13px; line-height: 1.5; background: #fafafa; border: 1px solid #e7e7ee; border-radius: 14px; padding: 12px; max-height: 118px; overflow: hidden; }
-  .prompt-textarea { min-height: 220px; max-width: 72ch; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 13px; }
-  .comment { border: 1px solid #ececf1; border-radius: 14px; padding: 10px; margin-bottom: 8px; background: #fff; }
-  .comment.resolved { background: #f0fdf4; border-color: #bbf7d0; }
-  details { border: 1px solid #ececf1; border-radius: 14px; background: white; margin-bottom: 10px; overflow: hidden; }
-  summary { padding: 12px 14px; cursor: pointer; font-weight: 850; }
-  details > div { padding: 0 14px 14px; }
-  .brand-grid { display: grid; grid-template-columns: 320px minmax(0, 760px); gap: 22px; align-items: start; }
-  .brand-list { display: grid; gap: 8px; }
-  .brand-row { border: 1px solid #e6e6ee; background: white; border-radius: 14px; padding: 12px; text-align: left; cursor: pointer; }
-  .brand-row.active { border-color: #7c3aed; box-shadow: inset 0 0 0 1px #7c3aed; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-top: 10px; }
-  .ref-chip { border: 1px solid #ececf1; border-radius: 14px; background: #fcfcfd; padding: 9px; font-size: 12px; overflow: hidden; }
-  @media (max-width: 1180px) { .builder-layout, .details-layout, .brand-grid { grid-template-columns: 1fr; } .sticky-panel { position: static; max-height: none; } .global-search { width: 240px; } }
-  @media (max-width: 1040px) { .shell { grid-template-columns: 1fr; } .sidebar { display: none; } .main { padding: 22px; } .stat-row { grid-template-columns: repeat(2, minmax(120px, 1fr)); } .filters { grid-template-columns: 1fr 1fr; } }
-  @media (max-width: 680px) { .topbar { height: auto; padding: 12px; flex-wrap: wrap; } .brand-lockup { min-width: 0; } .main { padding: 16px; } .row, .three-row, .form-grid, .filters, .stat-row, .segmented { grid-template-columns: 1fr; } .board { min-width: 980px; } }
+  .pill.green { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+  .pill.purple { background: #f3e8ff; color: #6d28d9; border-color: #e9d5ff; }
+  .muted { color: #71717a; }
+  .small { font-size: 13px; }
+  .warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; border-radius: 12px; padding: 11px 12px; font-size: 13px; margin-bottom: 8px; }
+  .success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; border-radius: 12px; padding: 11px 12px; font-size: 13px; margin-bottom: 8px; }
+  .sticky { position: sticky; top: 92px; }
+  .choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .choice { text-align: left; border: 1px solid #d4d4d8; border-radius: 14px; padding: 13px; background: #fff; cursor: pointer; font-weight: 850; }
+  .choice.active { background: #18181b; color: white; border-color: #18181b; }
+  .composer { border: 1px dashed #d4d4d8; border-radius: 16px; background: #fbfbfd; padding: 12px; }
+  .suggestions { display: grid; gap: 8px; margin-top: 10px; }
+  .suggestion { border: 1px solid #e4e4e7; border-radius: 12px; background: white; padding: 10px; display: flex; justify-content: space-between; gap: 10px; align-items: center; cursor: pointer; text-align: left; }
+  .suggestion:hover { border-color: #a78bfa; }
+  .deliverable-list { display: grid; gap: 8px; margin-top: 14px; }
+  .deliverable-item { border: 1px solid #e4e4e7; border-radius: 14px; background: white; padding: 12px; }
+  .deliverable-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .deliverable-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
+  .check-row { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #3f3f46; }
+  .check-row input { width: auto; }
+  .reference-panel { border: 1px solid #e4e4e7; border-radius: 16px; padding: 14px; background: #fbfbfd; }
+  .thumb-strip { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .thumb { width: 64px; height: 64px; border-radius: 12px; border: 1px solid #e4e4e7; object-fit: cover; background: #f4f4f5; }
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.48); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 99; }
+  .modal { background: white; border-radius: 20px; width: 100%; max-width: 680px; max-height: 88vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.28); }
+  .modal.large { max-width: 960px; }
+  .modal-header { padding: 18px 20px; border-bottom: 1px solid #e4e4e7; display: flex; align-items: center; justify-content: space-between; gap: 16px; position: sticky; top: 0; background: white; z-index: 2; }
+  .modal-body { padding: 20px; }
+  .upload-zone { border: 1.5px dashed #a1a1aa; border-radius: 18px; min-height: 160px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 22px; background: #fafafa; }
+  .upload-zone.dragging { background: #f3e8ff; border-color: #8b5cf6; }
+  .thumb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; margin-top: 16px; }
+  .thumb-card { position: relative; border: 1px solid #e4e4e7; border-radius: 14px; padding: 8px; background: white; min-width: 0; }
+  .thumb-card img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 10px; background: #f4f4f5; }
+  .thumb-remove { position: absolute; top: 6px; right: 6px; border: 0; width: 24px; height: 24px; border-radius: 999px; background: rgba(24,24,27,.82); color: white; cursor: pointer; }
+  .board { display: grid; grid-template-columns: repeat(5, minmax(210px, 1fr)); gap: 14px; align-items: start; overflow-x: auto; padding-bottom: 12px; }
+  .board-column { min-height: 520px; background: #ededf0; border: 1px solid #e4e4e7; border-radius: 18px; padding: 10px; }
+  .board-column.drag-over { outline: 3px solid rgba(139,92,246,.25); }
+  .column-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 4px 10px; }
+  .column-title { font-weight: 900; display: flex; align-items: center; gap: 8px; }
+  .count { min-width: 24px; height: 24px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: white; border: 1px solid #d4d4d8; font-size: 12px; color: #52525b; }
+  .task-card { position: relative; background: white; border: 1px solid #dddde3; border-radius: 4px; padding: 14px 12px 12px 22px; margin-bottom: 10px; cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,.08); min-height: 112px; transition: transform .08s ease, box-shadow .12s ease; }
+  .task-card:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,.10); }
+  .task-card:active { cursor: grabbing; }
+  .deadline-strip { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; border-radius: 4px 0 0 4px; background: #a1a1aa; }
+  .strip-gray { background: #a1a1aa; }
+  .strip-green { background: #22c55e; }
+  .strip-yellow { background: #facc15; }
+  .strip-orange { background: #fb923c; }
+  .strip-red { background: #ef4444; }
+  .task-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+  .task-title { font-size: 16px; font-weight: 900; line-height: 1.25; margin: 0 0 12px; }
+  .task-meta { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; font-size: 14px; color: #3f3f46; }
+  .task-icon { display: inline-flex; align-items: center; gap: 5px; font-weight: 800; white-space: nowrap; position: relative; }
+  .comment-badge { position: absolute; right: -8px; top: -9px; min-width: 17px; height: 17px; border-radius: 999px; background: #ef4444; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; border: 2px solid white; }
+  .dashboard-toolbar { display: grid; grid-template-columns: minmax(260px, 1fr) 180px 180px; gap: 10px; margin-bottom: 16px; }
+  .detail-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, .8fr); gap: 18px; }
+  .info-box { border: 1px solid #e4e4e7; border-radius: 14px; padding: 12px; background: #fafafa; margin-bottom: 12px; }
+  .table-ish { display: grid; gap: 8px; }
+  .deliverable-detail { border: 1px solid #e4e4e7; border-radius: 12px; padding: 10px; background: white; }
+  .comment { border-bottom: 1px solid #f1f1f1; padding: 10px 0; }
+  .comment-type { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 900; background: #f4f4f5; color: #52525b; margin-left: 6px; }
+  .deliverable-check { width: 22px; height: 22px; accent-color: #18181b; }
+  .deliverable-row-main { display: grid; grid-template-columns: 30px minmax(0, 1fr) 150px; gap: 10px; align-items: center; }
+  .output-fields { display: grid; gap: 8px; margin-top: 10px; padding-left: 40px; }
+  .asset-type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 10px 0; }
+  .asset-type { border: 1px solid #d4d4d8; border-radius: 12px; padding: 9px 10px; background: white; cursor: pointer; font-weight: 850; font-size: 13px; }
+  .asset-type.active { background: #18181b; color: white; border-color: #18181b; }
+  .activity-item { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-bottom: 1px solid #f1f1f1; font-size: 13px; }
+  @media (max-width: 1000px) { .grid, .detail-grid, .dashboard-toolbar { grid-template-columns: 1fr; } .sticky { position: static; } .board { grid-template-columns: repeat(5, 260px); } }
+  @media (max-width: 620px) { .row, .three-row { grid-template-columns: 1fr; } .task-meta { grid-template-columns: 1fr auto auto; gap: 8px; } }
 `;
 
 function uid(prefix = "REQ") {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
-function todayPlus(days) {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function formatDeliverable(d) {
-  if (!d) return "";
-  if (d.unit === "N/A") return d.label;
-  if (!d.width || !d.height) return `${d.label} — Custom size`;
-  return `${d.label} — ${d.width} × ${d.height} ${d.unit}`;
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return "No due date";
-  try {
-    return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  } catch {
-    return dateStr;
-  }
-}
-
-function daysUntil(dateStr) {
-  if (!dateStr) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const d = new Date(dateStr);
-  d.setHours(0, 0, 0, 0);
-  return Math.round((d - today) / 86400000);
-}
-
-function priorityFromDate(dateStr) {
-  const days = daysUntil(dateStr);
-  if (days === null) return { label: "No deadline", cls: "gray" };
-  if (days <= 1) return { label: "Urgent", cls: "red" };
-  if (days <= 5) return { label: "Soon", cls: "yellow" };
-  return { label: "Normal", cls: "green" };
-}
-
-function initials(name = "?") {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]?.toUpperCase()).join("") || "?";
-}
-
-function truncate(text = "", max = 140) {
-  return text.length > max ? `${text.slice(0, max).trim()}…` : text;
-}
-
-function getBrand(brandProfiles, brandId) {
-  return brandProfiles.find((b) => b.id === brandId) || brandProfiles[0] || DEFAULT_BRAND_PROFILES[0];
-}
-
-function safeForm(form = {}) {
-  return {
-    ...blankForm,
-    ...form,
-    requestDetails: form.requestDetails || form.rawRequest || form.ideaDump || "",
-    deliverables: Array.isArray(form.deliverables) ? form.deliverables : [],
-    referenceTags: Array.isArray(form.referenceTags) ? form.referenceTags : [],
-    files: Array.isArray(form.files) ? form.files : [],
-  };
-}
-
-function getMissing(formInput) {
-  const form = safeForm(formInput);
-  const arr = [];
-  if (!form.title.trim()) arr.push("Project title is missing.");
-  if (!form.brandId) arr.push("Brand is not selected.");
-  if (!form.deliverables.length) arr.push("No deliverable / size selected.");
-  if (!form.deadline) arr.push("Deadline is missing.");
-  if (!form.requestor.trim()) arr.push("Requestor name is missing.");
-  if (!form.requestDetails.trim()) arr.push("Request details are missing.");
-  return arr;
-}
-
-function cleanLines(text = "") {
-  return text.split(/\n+/).map((line) => line.trim().replace(/^[-•*]\s*/, "")).filter(Boolean);
-}
-
-function detectFirst(lines, regexes) {
-  return lines.find((line) => regexes.some((r) => r.test(line))) || "Not provided";
-}
-
-function extractHierarchy(formInput) {
-  const form = safeForm(formInput);
-  const lines = cleanLines(form.requestDetails);
-  const text = form.requestDetails || "";
-  const titleLike = form.title || lines.find((line) => /^[A-Z0-9\s!?,.'-]{6,}$/.test(line) && line.length < 60) || "Not provided";
-  const mechanic = detectFirst(lines, [/deposit/i, /register/i, /scan/i, /purchase/i, /spend/i, /get/i, /join/i, /download/i, /visit/i]);
-  const rewards = lines.filter((line) => /bonus|free|meal|food|merch|raffle|prize|voucher|reward|cash|₱|php|peso/i.test(line));
-  const cta = detectFirst(lines, [/register now/i, /join now/i, /play now/i, /visit/i, /scan/i, /learn more/i, /claim/i, /download/i]);
-  const date = detectFirst(lines, [/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i, /\d{1,2}[/-]\d{1,2}/, /\d{4}-\d{2}-\d{2}/, /\b(am|pm)\b/i]);
-  const location = detectFirst(lines, [/location/i, /venue/i, /branch/i, /outlet/i, /barangay/i, /mall/i, /front of/i, /at\s+/i]);
-  const requiredSmallText = lines.filter((line) => /pagcor|responsible|terms|conditions|t&c|permit|approval|valid until/i.test(line));
-
-  return {
-    mainMessage: titleLike,
-    mechanic,
-    rewards: rewards.length ? rewards : ["Not provided"],
-    cta,
-    date: date !== "Not provided" ? date : form.deadline ? `Deadline / needed by: ${form.deadline}` : "Not provided",
-    location,
-    requiredSmallText: requiredSmallText.length ? requiredSmallText : ["Not provided"],
-    rawNotes: text.trim() || "Not provided",
-  };
-}
-
-function inferAssets(formInput) {
-  const form = safeForm(formInput);
-  const text = `${form.title} ${form.requestDetails}`.toLowerCase();
-  if (/summer|beach|sea|ocean|sand|sun/i.test(text)) return ["beach ball", "starfish", "seashells", "donut floater", "towel", "icebox", "sun flare", "warm wave highlights"];
-  if (/logo|brand identity|mark/i.test(text)) return ["simple symbol exploration", "wordmark lockup", "icon-only mark", "clear negative space"];
-  if (/raffle|prize|reward|bonus|voucher/i.test(text)) return ["glowing reward cluster", "voucher cards", "gift/prize highlight", "subtle burst accents"];
-  if (/tutorial|register|how to|steps/i.test(text)) return ["phone UI placeholder", "step cards", "pointer arrows", "clean instruction panels"];
-  return ["hero focal object", "supporting graphic accents", "clean CTA area", "subtle depth / glow"];
-}
-
-function generateAi(formInput, brandProfiles) {
-  const form = safeForm(formInput);
-  const brand = getBrand(brandProfiles, form.brandId);
-  const hierarchy = extractHierarchy(form);
-  const missingEssentials = getMissing(form);
-  const title = form.title || hierarchy.mainMessage || "Untitled Request";
-  const deliverableText = form.deliverables.length ? form.deliverables.map(formatDeliverable).join(", ") : "requested deliverables";
-  const text = `${title} ${form.requestDetails}`.toLowerCase();
-  const isLogo = form.deliverables.some((d) => /logo/i.test(d.label));
-  const isSummer = /summer|beach|sea|ocean|sand|sun/i.test(text);
-  const isHowTo = /tutorial|register|how to|steps/i.test(text);
-  const assets = inferAssets(form);
-  const hasRefs = form.files.length > 0 || form.referenceLinks.trim();
-  const refTags = form.referenceTags.length ? form.referenceTags.join(", ") : "mood, color, layout, and style cues";
-
-  const brief = isLogo
-    ? `Create a logo / identity direction for "${title}" under ${brand.name}. Focus on a scalable mark system rather than a finished layout.`
-    : `Create a ${form.outputMode.toLowerCase()} creative package for "${title}" under ${brand.name}. Build one clear campaign system that can adapt across: ${deliverableText}.`;
-
-  const mood = isLogo
-    ? "Clean, scalable, recognizable brand foundation."
-    : isSummer
-      ? "Energetic summer promo with warm, reward-driven excitement."
-      : isHowTo
-        ? "Clear instructional material with friendly, simple step-by-step energy."
-        : "Direct, promotional, easy-to-scan campaign system.";
-
-  const colorBalance = brand.name === "LakiWin"
-    ? isSummer
-      ? "70% warm red-orange / sunset gradient, 20% LakiWin yellow as brand anchor, 10% black and white for contrast/readability."
-      : "60% LakiWin yellow, 25% white/black structure, 15% controlled warm orange or gold highlights."
-    : brand.name === "VikingFunLand"
-      ? "55% warm gold/yellow token tones, 25% deep navy/charcoal, 15% icy blue accents, 5% white highlights."
-      : "Use the brand's primary color as the anchor, then borrow supporting mood colors from uploaded references without diluting brand recognition.";
-
-  const coreIdea = isLogo
-    ? "Define one clear symbol logic first, then test it as icon-only, wordmark, and combined lockup."
-    : isHowTo
-      ? "Turn the message into a readable visual guide: one strong headline, simple step cards, and a clear CTA path."
-      : /raffle|prize|reward|bonus|voucher|deposit/i.test(text)
-        ? "Build the KV around a reward moment: the offer or perk cluster should feel like the visual payoff."
-        : "Use one dominant focal idea and make all supporting graphics point toward it.";
-
-  const composition = isLogo
-    ? "Center the mark exploration with generous negative space. Avoid effects until the base form works in black and white."
-    : "Keep one focal cluster slightly off-center, reserve a clean headline / CTA zone, and make sure the composition can crop across the chosen deliverables.";
-
-  const referenceInfluence = hasRefs
-    ? `Use uploaded references as visual influence for ${refTags}. Extract dominant palette, lighting mood, composition cues, and reusable visual motifs, but keep ${brand.name}'s brand profile as the anchor.`
-    : "No reference images attached. Base the reference prompt on request details and the selected brand profile.";
-
-  const hierarchyMissing = [];
-  if (hierarchy.cta === "Not provided") hierarchyMissing.push("Final CTA is not provided.");
-  if (hierarchy.location === "Not provided") hierarchyMissing.push("Location / placement is not provided.");
-  if (hierarchy.date === "Not provided") hierarchyMissing.push("Date / schedule is not provided.");
-
-  const missing = [...missingEssentials, ...hierarchyMissing].filter((item, index, arr) => arr.indexOf(item) === index);
-  const guardrails = [brand.dos, brand.donts, brand.compliance].filter(Boolean);
-  const executionNotes = isLogo
-    ? ["Test the mark at small sizes before adding detail.", "Prepare icon-only, horizontal, and stacked lockup thinking.", "Keep the first pass focused on form, not effects."]
-    : ["Keep the main message readable within 2 seconds.", "Use one campaign system first, then adapt per size.", "Do not add decorative elements if they compete with hierarchy."];
-
-  const visualReferencePrompt = `Generate a visual reference image for a designer, not a final artwork.
-
-Project: ${title}
-Brand: ${brand.name}
-Output type: ${form.outputMode}
-Deliverables: ${deliverableText}
-
-Brief: ${brief}
-
-Detected request structure:
-- Main message: ${hierarchy.mainMessage}
-- Mechanic: ${hierarchy.mechanic}
-- Rewards / benefits: ${hierarchy.rewards.join("; ")}
-- CTA: ${hierarchy.cta}
-- Date / schedule: ${hierarchy.date}
-- Location: ${hierarchy.location}
-
-Visual direction:
-- Mood: ${mood}
-- Color balance: ${colorBalance}
-- Core idea: ${coreIdea}
-- Suggested imagery: ${assets.join(", ")}
-- Composition: ${composition}
-
-Reference influence:
-${referenceInfluence}
-
-Brand guardrails:
-- ${guardrails.join("\n- ")}
-
-Important: this is for reference only. Do not create final artwork. Do not create tiny text. Do not overfill the layout. Leave room for designers to add final copy, logos, compliance marks, and production polish.`;
-
-  return {
-    brief,
-    hierarchy,
-    missing: missing.length ? missing : ["No major gaps detected. Final approval and compliance check still required."],
-    visualDirection: { mood, colorBalance, coreIdea, suggestedImagery: assets, composition, referenceInfluence, guardrails },
-    executionNotes,
-    visualReferencePrompt,
-  };
-}
-
-function createSamples(brandProfiles) {
-  const sample1 = {
-    title: "LakiSummer Materials",
-    brandId: "brand-lakiwin",
-    outputMode: "Static",
-    deliverables: [DELIVERABLE_PRESETS[0], DELIVERABLE_PRESETS[4], DELIVERABLE_PRESETS[6]],
-    requestDetails: `Todo Laki Summer
-
-Deposit ₱50 to get:
-- ₱50 bonus
-- Food pack
-- LakiWin merchandise
-- Raffle prizes up to ₱50,000
-
-Beach / summer vibe. Make it bright, fun, and reward-focused.`,
-    deadline: todayPlus(2),
-    requestor: "ABM",
-    referenceLinks: "",
-    referenceTags: ["Mood", "Color"],
-    files: [{ id: uid("FILE"), name: "summer-moodboard.jpg", size: 928000, tag: "Mood" }],
-  };
-  const sample2 = {
-    title: "How to Register Tutorial Video",
-    brandId: "brand-lakiwin",
-    outputMode: "Motion",
-    deliverables: [DELIVERABLE_PRESETS[2]],
-    requestDetails: "Create a simple tutorial direction for registration. Needs to feel clean, trustworthy, and easy to follow.",
-    deadline: todayPlus(6),
-    requestor: "Claire",
-    referenceLinks: "",
-    referenceTags: ["Layout", "Style"],
-    files: [],
-  };
-  return [
-    { id: uid(), createdAt: new Date().toISOString(), status: "Submitted", form: sample1, ai: generateAi(sample1, brandProfiles), comments: [{ id: uid("COM"), author: "Designer", text: "Please confirm if raffle prize is approved for this layout.", resolved: false, createdAt: new Date().toISOString() }], generatedReference: null },
-    { id: uid(), createdAt: new Date().toISOString(), status: "In Progress", form: sample2, ai: generateAi(sample2, brandProfiles), comments: [], generatedReference: null },
-  ];
-}
-
-function saveState(payload) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(payload)); } catch { /* ignore */ }
-}
-
-function loadState() {
-  try { return JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch { return {}; }
+function Section({ n, title, optional, children }) {
+  return (
+    <div className="card">
+      <div className="card-header">
+        <div className="card-title"><span className="section-num">{n}</span>{title}</div>
+        {optional && <span className="pill">Optional</span>}
+      </div>
+      <div className="card-body">{children}</div>
+    </div>
+  );
 }
 
 function Field({ label, children }) {
   return <div className="field"><label>{label}</label>{children}</div>;
 }
 
-function Pill({ children, tone = "gray" }) {
-  return <span className={`pill ${tone}`}>{children}</span>;
+function formatSize(item) {
+  if (!item) return "";
+  if (item.width === "N/A" || item.unit === "N/A") return "N/A";
+  return `${item.width || "—"} × ${item.height || "—"} ${item.unit || ""}`.trim();
 }
 
-function Card({ title, children, right }) {
-  return <div className="card"><div className="card-head"><h3>{title}</h3>{right}</div><div className="card-body">{children}</div></div>;
+function formatDate(dateStr) {
+  if (!dateStr) return "No deadline";
+  const date = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-function HierarchyBlock({ hierarchy }) {
-  const h = hierarchy || extractHierarchy({});
-  return <div className="hierarchy-grid">
-    <div className="hierarchy-row"><strong>Main message / title</strong>{h.mainMessage}</div>
-    <div className="hierarchy-row"><strong>Mechanic</strong>{h.mechanic}</div>
-    <div className="hierarchy-row"><strong>Rewards / benefits</strong>{h.rewards?.join("; ")}</div>
-    <div className="hierarchy-row"><strong>CTA</strong>{h.cta}</div>
-    <div className="hierarchy-row"><strong>Date / schedule</strong>{h.date}</div>
-    <div className="hierarchy-row"><strong>Location / branch</strong>{h.location}</div>
-    <div className="hierarchy-row"><strong>Required small text</strong>{h.requiredSmallText?.join("; ")}</div>
-  </div>;
+function formatDateTime(iso) {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-function VisualDirectionBlock({ visualDirection, compact = false }) {
-  const vd = visualDirection || {};
-  return <div className="kv-stack">
-    <div className="kv-item"><strong>Mood</strong><p>{vd.mood}</p></div>
-    <div className="kv-item"><strong>Color Balance</strong><p>{vd.colorBalance}</p></div>
-    <div className="kv-item"><strong>Core Idea</strong><p>{vd.coreIdea}</p></div>
-    <div className="kv-item"><strong>Imagery</strong><p>{(vd.suggestedImagery || []).map((x) => <Pill key={x}>{x}</Pill>)}</p></div>
-    {!compact && <div className="kv-item"><strong>Composition</strong><p>{vd.composition}</p></div>}
-    {!compact && <div className="kv-item"><strong>Reference Influence</strong><p>{vd.referenceInfluence}</p></div>}
-    {!compact && <div className="kv-item"><strong>Brand Guardrails</strong><div>{(vd.guardrails || []).map((g) => <div className="note" key={g}>{g}</div>)}</div></div>}
-  </div>;
+function formatActivityTime(iso) {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
-export default function CreativeRequestBuilderPrototype() {
-  const boot = useMemo(() => loadState(), []);
-  const initialBrands = boot.brandProfiles?.length ? boot.brandProfiles : DEFAULT_BRAND_PROFILES;
-  const [brandProfiles, setBrandProfiles] = useState(initialBrands);
-  const [requests, setRequests] = useState(boot.requests?.length ? boot.requests.map((r) => ({ ...r, form: safeForm(r.form), ai: r.ai || generateAi(safeForm(r.form), initialBrands), comments: r.comments || [] })) : createSamples(initialBrands));
-  const [view, setView] = useState("dashboard");
-  const [form, setForm] = useState(blankForm);
-  const [ai, setAi] = useState(null);
-  const [deliverableQuery, setDeliverableQuery] = useState("");
-  const [customDeliverable, setCustomDeliverable] = useState(blankCustomDeliverable);
-  const [selectedId, setSelectedId] = useState(null);
-  const [filters, setFilters] = useState({ search: "", status: "", output: "", brandId: "" });
-  const [commentText, setCommentText] = useState("");
-  const [brandDraft, setBrandDraft] = useState(null);
-  const [visualPromptDraft, setVisualPromptDraft] = useState("");
-  const [promptExpanded, setPromptExpanded] = useState(false);
+function makeActivity(action, detail = "", actor = "Current User") {
+  return { id: uid("ACT"), action, detail, actor, createdAt: new Date().toISOString() };
+}
 
-  useEffect(() => saveState({ requests, brandProfiles }), [requests, brandProfiles]);
+function normalizeDeliverable(item) {
+  return {
+    id: item.id || uid("DEL"),
+    presetId: item.presetId || null,
+    label: item.label || "Custom Size",
+    width: item.width || "",
+    height: item.height || "",
+    unit: item.unit || "",
+    source: item.source || "custom",
+    status: item.status || "To Do",
+    options: item.options || { qr: false, fullMechanics: false, minimalCopy: false, ctaPriority: false },
+    notes: item.notes || "",
+    outputUrl: item.outputUrl || "",
+    outputNotes: item.outputNotes || "",
+  };
+}
 
-  const selected = requests.find((r) => r.id === selectedId) || null;
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(`${dateStr}T00:00:00`);
+  target.setHours(0, 0, 0, 0);
+  if (Number.isNaN(target.getTime())) return null;
+  return Math.round((target - today) / 86400000);
+}
 
-  useEffect(() => {
-    if (selected) {
-      setVisualPromptDraft(selected.ai?.visualReferencePrompt || "");
-      setPromptExpanded(false);
-    }
-  }, [selectedId, selected?.ai?.visualReferencePrompt]);
+function deadlineMeta(dateStr) {
+  const days = daysUntil(dateStr);
+  if (days === null) return { label: "No deadline", strip: "strip-gray", badge: "", days };
+  if (days < 0) return { label: "Overdue", strip: "strip-red", badge: "red", days };
+  if (days <= 3) return { label: "Due soon", strip: "strip-orange", badge: "yellow", days };
+  if (days <= 7) return { label: "Less than 7 days", strip: "strip-yellow", badge: "yellow", days };
+  return { label: "More than 7 days", strip: "strip-green", badge: "green", days };
+}
 
-  const updateForm = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
-  const currentBrand = getBrand(brandProfiles, form.brandId);
-  const missing = getMissing(form);
-  const priority = priorityFromDate(form.deadline);
+function normalizeStatus(status) {
+  if (!status || status === "Submitted") return "To Do";
+  return STATUS_COLUMNS.includes(status) ? status : "To Do";
+}
 
-  const deliverableSuggestions = useMemo(() => {
-    const q = deliverableQuery.trim().toLowerCase();
-    if (!q) return [];
-    return DELIVERABLE_PRESETS.filter((d) => `${d.label} ${d.group} ${formatDeliverable(d)}`.toLowerCase().includes(q)).slice(0, 7);
-  }, [deliverableQuery]);
+function normalizeRequest(r) {
+  const rawDeliverables = Array.isArray(r.form?.deliverables) ? r.form.deliverables : legacyDeliverables(r.form || {});
+  return {
+    ...r,
+    status: normalizeStatus(r.status),
+    comments: Array.isArray(r.comments) ? r.comments.map((c) => ({ type: "General", ...c })) : [],
+    unreadComments: Number.isFinite(r.unreadComments) ? r.unreadComments : 0,
+    activity: Array.isArray(r.activity) ? r.activity : [],
+    form: {
+      ...blankForm,
+      ...(r.form || {}),
+      requestDetails: r.form?.requestDetails || r.form?.ideaDump || "",
+      deliverables: rawDeliverables.map(normalizeDeliverable),
+      referenceImages: Array.isArray(r.form?.referenceImages) ? r.form.referenceImages : Array.isArray(r.form?.files) ? r.form.files : [],
+      assignedTo: r.form?.assignedTo || "Unassigned",
+    },
+  };
+}
 
-  function resetBuilder() {
-    setForm(blankForm);
-    setAi(null);
-    setDeliverableQuery("");
-    setCustomDeliverable(blankCustomDeliverable);
-    setView("builder");
+function legacyDeliverables(form) {
+  const output = [];
+  if (Array.isArray(form.materials)) {
+    form.materials.forEach((id) => {
+      const preset = MATERIAL_PRESETS.find((m) => m.id === id);
+      if (preset) output.push(normalizeDeliverable({ ...preset, source: "preset", status: "To Do", notes: "", options: {} }));
+    });
   }
-
-  function addDeliverable(d) {
-    if (form.deliverables.some((x) => formatDeliverable(x) === formatDeliverable(d) || x.id === d.id)) return;
-    updateForm("deliverables", [...form.deliverables, { ...d, id: d.id || uid("DEL") }]);
-    setDeliverableQuery("");
+  if (form.customMaterial?.trim()) {
+    output.push(normalizeDeliverable({ id: uid("DEL"), label: form.customMaterial.trim(), width: "", height: "", unit: "", source: "custom", status: "To Do", notes: "", options: {} }));
   }
+  return output;
+}
 
-  function removeDeliverable(id) {
-    updateForm("deliverables", form.deliverables.filter((d) => d.id !== id));
-  }
+async function loadFromSupabase() {
+  const { data, error } = await supabase
+    .from("requests")
+    .select("data")
+    .order("created_at", { ascending: false });
+  if (error) { console.warn("Load error", error); return []; }
+  return (data || []).map((row) => normalizeRequest(row.data));
+}
 
-  function addCustomDeliverable() {
-    const needsSize = customDeliverable.unit !== "N/A";
-    if (!customDeliverable.label.trim() || (needsSize && (!customDeliverable.width.trim() || !customDeliverable.height.trim()))) return;
-    addDeliverable({ ...customDeliverable, id: uid("CUSTOM"), label: customDeliverable.label.trim(), group: "Custom" });
-    setCustomDeliverable(blankCustomDeliverable);
-  }
+function textLines(text) {
+  return String(text || "")
+    .split(/\n+/)
+    .map((line) => line.replace(/^[-•\s]+/, "").trim())
+    .filter(Boolean);
+}
 
-  function toggleReferenceTag(tag) {
-    const next = form.referenceTags.includes(tag) ? form.referenceTags.filter((x) => x !== tag) : [...form.referenceTags, tag];
-    updateForm("referenceTags", next);
-  }
+function summarizeRequestDetails(form) {
+  const lines = textLines(form.requestDetails);
+  if (!lines.length) return "No request details provided yet.";
+  return lines.slice(0, 3).join(" ").slice(0, 190) + (lines.join(" ").length > 190 ? "…" : "");
+}
 
-  function handleFiles(files) {
-    const list = Array.from(files || []).map((f) => ({ id: uid("FILE"), name: f.name, size: f.size, type: f.type || "file" }));
-    updateForm("files", [...form.files, ...list]);
-  }
+function generateOutput(form) {
+  const lines = textLines(form.requestDetails);
+  const details = form.requestDetails.trim();
+  const title = form.title.trim() || "Untitled Project";
+  const deliverables = form.deliverables || [];
+  const deliverableText = deliverables.length
+    ? deliverables.map((item) => `${item.label || "Custom Size"}${formatSize(item) ? ` — ${formatSize(item)}` : ""}`).join(", ")
+    : "No deliverables selected";
+  const lower = `${title} ${details}`.toLowerCase();
+  const missing = [];
 
-  function generate() {
-    setAi(generateAi(form, brandProfiles));
-  }
+  if (!details) missing.push("Request details / full brief is not provided.");
+  if (!deliverables.length) missing.push("No deliverables / sizes added.");
+  if (!form.deadline) missing.push("Date needed is missing.");
+  if (!form.requestor) missing.push("Requested by is not selected.");
+  if (!/(cta|call to action|register|join|scan|visit|deposit|play|click|learn more)/i.test(details)) missing.push("Final CTA is not clearly provided.");
+  if (!/(qr|file|asset|drive|attachment|upload)/i.test(details) && /qr/i.test(lower)) missing.push("QR asset/file still needs to be attached or confirmed.");
+  if (!/(location|branch|outlet|venue|placement|site|area|kiosk|monitor)/i.test(lower)) missing.push("Location / placement is not clearly provided.");
 
-  function submitRequest() {
-    const output = ai || generateAi(form, brandProfiles);
-    const record = { id: uid(), createdAt: new Date().toISOString(), status: "Submitted", form: safeForm(form), ai: output, comments: [], generatedReference: null };
-    setRequests([record, ...requests]);
-    setSelectedId(record.id);
-    setView("detail");
-  }
-
-  function updateRequest(id, updater) {
-    setRequests((prev) => prev.map((r) => r.id === id ? updater(r) : r));
-  }
-
-  function openRequest(id) {
-    setSelectedId(id);
-    setView("detail");
-  }
-
-  function deleteSelected() {
-    if (!selected) return;
-    if (window.confirm("Delete request?")) {
-      setRequests(requests.filter((r) => r.id !== selected.id));
-      setSelectedId(null);
-      setView("dashboard");
-    }
-  }
-
-  const filteredRequests = requests.filter((r) => {
-    const formData = safeForm(r.form);
-    const q = filters.search.trim().toLowerCase();
-    const brand = getBrand(brandProfiles, formData.brandId);
-    const matchesSearch = !q || `${formData.title} ${formData.requestor} ${brand.name}`.toLowerCase().includes(q);
-    const matchesStatus = !filters.status || r.status === filters.status;
-    const matchesOutput = !filters.output || formData.outputMode === filters.output;
-    const matchesBrand = !filters.brandId || formData.brandId === filters.brandId;
-    return matchesSearch && matchesStatus && matchesOutput && matchesBrand;
-  });
-
-  const stats = {
-    total: requests.length,
-    urgent: requests.filter((r) => priorityFromDate(safeForm(r.form).deadline).label === "Urgent").length,
-    needs: requests.filter((r) => (r.ai?.missing || []).some((m) => !/No major gaps/i.test(m))).length,
-    progress: requests.filter((r) => r.status === "In Progress").length,
+  const detected = {
+    mainMessage: lines[0] || title,
+    featuredProduct: /superace/i.test(details) ? "SuperAce by JILI" : findAfterKeyword(details, ["feature", "showcase", "promote"]) || "Not clearly provided",
+    mandatories: /pagcor/i.test(details) ? "PAGCOR mandatories required" : /responsible/i.test(details) ? "Responsible gaming mandatory required" : "Not clearly provided",
+    qr: /qr/i.test(details) ? "QR code required" : "Not requested",
+    logo: /logo/i.test(details) ? "Logo must be shown" : "Not clearly provided",
+    cta: findCTA(details) || "Not clearly provided",
   };
 
-  function navItem(id, label, icon) {
-    return <button className={`side-item ${view === id ? "active" : ""}`} onClick={() => setView(id)}><span>{icon}</span>{label}</button>;
+  const brief = details
+    ? `Create a ${form.outputMode.toLowerCase()} creative request for “${title}” under ${form.brand}. Use the requestor's notes as the main source of truth: ${summarizeRequestDetails(form)} Adapt the same campaign system across: ${deliverableText}.`
+    : `Create a ${form.outputMode.toLowerCase()} creative request for “${title}” under ${form.brand}. Adapt the campaign system across: ${deliverableText}.`;
+
+  const visualDirection = buildVisualDirection(form, detected);
+
+  return {
+    summary: `${title} — ${summarizeRequestDetails(form)}`,
+    brief,
+    detected,
+    missing: missing.length ? missing : ["No major gaps detected. Final approval and compliance should still be checked."],
+    visualDirection,
+    imagePrompt: buildImagePrompt(form, detected, visualDirection),
+  };
+}
+
+function findAfterKeyword(text, keywords) {
+  const line = textLines(text).find((l) => keywords.some((k) => l.toLowerCase().startsWith(k)));
+  return line ? line.replace(new RegExp(`^(${keywords.join("|")})\\s+`, "i"), "").replace(/[.:]/g, "").trim() : "";
+}
+
+function findCTA(text) {
+  const line = textLines(text).find((l) => /(register|join|scan|visit|deposit|play|click|learn more|download)/i.test(l));
+  return line || "";
+}
+
+function buildVisualDirection(form, detected) {
+  const lower = `${form.title} ${form.requestDetails}`.toLowerCase();
+  const isLogo = /logo|brand mark|identity/.test(lower);
+  const isPromo = /promo|deposit|bonus|raffle|register|play|game|jili|superace/.test(lower);
+
+  if (isLogo) {
+    return {
+      mood: "Clean, recognizable, scalable brand direction.",
+      colorBalance: "Use brand colors first. Keep the logo readable in full color, black, and white.",
+      coreIdea: "Prioritize a simple mark that can work from small icon usage to signage.",
+      imagery: ["wordmark lockup", "icon-only mark", "clear negative space"],
+    };
   }
 
-  function renderTopbar() {
-    return <div className="topbar">
-      <div className="brand-lockup"><div className="logo">CR</div><div><strong>Creative Request Builder</strong><div className="tiny">AI-assisted creative intake</div></div></div>
-      <button className="workspace">MT WorkSpace⌄</button>
-      <div className="top-actions"><input className="global-search" placeholder="Search" value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} /><button className="btn secondary">Sort by⌄</button><button className="btn purple" onClick={resetBuilder}>+ Create</button></div>
-    </div>;
+  return {
+    mood: isPromo ? "Direct, promotional, easy-to-scan campaign system." : "Clear, branded, production-ready creative direction.",
+    colorBalance: form.brand === "LakiWin" ? "60% LakiWin yellow, 25% white/black structure, 15% controlled warm orange or gold highlights." : "Use the selected brand palette as the main structure, with one supporting accent only.",
+    coreIdea: detected.featuredProduct !== "Not clearly provided" ? `Make ${detected.featuredProduct} the focal point, then support it with brand, QR, and mandatory elements.` : "Use one dominant focal idea and make all supporting graphics point toward it.",
+    imagery: ["main focal asset", "brand logo space", "QR-safe layout", "mandatory text area"],
+  };
+}
+
+function buildImagePrompt(form, detected, visualDirection) {
+  const deliverableText = form.deliverables?.length ? form.deliverables.map((d) => `${d.label} ${formatSize(d)}`).join(", ") : "selected formats";
+  return `KV Direction — ${form.title || "Untitled Project"}
+
+Requestor Notes:
+${form.requestDetails || "No request details provided."}
+
+Deliverables:
+${deliverableText}
+
+Core Idea:
+${visualDirection.coreIdea}
+
+Hierarchy:
+1. Main message / focal product: ${detected.featuredProduct !== "Not clearly provided" ? detected.featuredProduct : form.title || "project title"}
+2. Brand presence: ${detected.logo}
+3. Action element: ${detected.qr}
+4. Mandatories: ${detected.mandatories}
+
+Visual Direction:
+${visualDirection.mood}
+${visualDirection.colorBalance}
+
+Composition Rules:
+Keep a clear safe area for text and mandatories. Do not overload the layout. Make the main focal point readable from a distance. Adapt the KV consistently across all listed deliverables.`;
+}
+
+function buildAssetPrompt(form, ai, promptType) {
+  const visualDirection = ai.visualDirection || {};
+  const detected = ai.detected || {};
+  const deliverableText = form.deliverables?.length ? form.deliverables.map((d) => `${d.label} ${formatSize(d)}`).join(", ") : "the selected deliverables";
+  const base = `Project: ${form.title || "Untitled Project"}
+Brand: ${form.brand}
+Output: ${form.outputMode}
+Deliverables: ${deliverableText}
+Request details: ${form.requestDetails || "No request details provided."}
+Core direction: ${visualDirection.coreIdea || ai.brief || "Create a clear, branded creative direction."}
+Color direction: ${visualDirection.colorBalance || "Use brand colors with strong hierarchy."}`;
+
+  if (promptType === "Background") {
+    return `${base}
+
+Generate a clean background plate only. No logos, no readable text, no QR code, no final layout. Leave safe negative space for the main logo, copy, mandatories, and QR area. Style should support: ${visualDirection.mood || "clear branded promotional design"}.`;
   }
 
-  function renderSidebar() {
-    return <aside className="sidebar">
-      {navItem("dashboard", "Dashboard", "▦")}
-      {navItem("notifications", "Notification", "◉")}
-      {navItem("notes", "Notes", "≡")}
-      {navItem("dashboard", "Tasks", "□")}
-      <div className="side-section">Settings</div>
-      {navItem("brands", "Brand Profiles", "◇")}
-      {navItem("integrations", "Integrations", "⚙")}
-      {navItem("help", "Help", "?")}
-    </aside>;
+  if (promptType === "Character / Mascot") {
+    return `${base}
+
+Generate a reusable character / mascot asset that matches the project mood. Use a clean isolated composition, plain solid background, no text, no logos, no QR code. Make it easy to cut out and place into the layout.`;
   }
 
-  function renderDashboard() {
-    return <div className="main-inner">
-      <div className="page-head"><div><h1>Tasks</h1><p className="muted">Trello-style designer-side request queue.</p></div><div className="tabs"><button className="tab active">Kanban</button><button className="tab">List</button><button className="tab">Grid</button></div></div>
-      <div className="stat-row">
-        <div className="stat-card"><strong>{stats.total}</strong><span className="tiny">Total requests</span></div>
-        <div className="stat-card"><strong>{stats.urgent}</strong><span className="tiny">Urgent</span></div>
-        <div className="stat-card"><strong>{stats.needs}</strong><span className="tiny">Needs info</span></div>
-        <div className="stat-card"><strong>{stats.progress}</strong><span className="tiny">In progress</span></div>
+  if (promptType === "3D Object") {
+    return `${base}
+
+Generate a polished 3D object / supporting asset for the layout. Keep it isolated, high-resolution, front-readable, with simple lighting and a plain solid background for easy masking. No text, no logos, no QR code.`;
+  }
+
+  if (promptType === "Scene Reference") {
+    return `${base}
+
+Generate a scene reference for the overall look and feel. Focus on lighting, mood, environment, and composition. Do not create the final ad. Keep space for designer-added text, logo, QR, and mandatories.`;
+  }
+
+  return `${base}
+
+Create a key visual reference only, not a finished material. Feature ${detected.featuredProduct && detected.featuredProduct !== "Not clearly provided" ? detected.featuredProduct : "the main campaign idea"} as the focal point. Leave clear safe areas for logo, headline, QR, and mandatories. Keep the design adaptable across all deliverables.`;
+}
+
+function getMissing(form) {
+  const missing = [];
+  if (!form.title.trim()) missing.push("Project title is missing.");
+  if (!form.requestDetails.trim()) missing.push("Request details / full brief is missing.");
+  if (!form.deliverables.length) missing.push("No deliverable / size has been added.");
+  if (!form.deadline) missing.push("Date needed is missing.");
+  if (!form.requestor) missing.push("Requested by is missing.");
+  return missing;
+}
+
+function matchPresetBySize(width, height, unit) {
+  const w = String(width || "").trim();
+  const h = String(height || "").trim();
+  const u = String(unit || "").trim().toLowerCase();
+  if (!w || !h || !u) return null;
+  return MATERIAL_PRESETS.find((p) => String(p.width).toLowerCase() === w.toLowerCase() && String(p.height).toLowerCase() === h.toLowerCase() && String(p.unit).toLowerCase() === u) || null;
+}
+
+function getSuggestions(draft) {
+  const q = draft.name.trim().toLowerCase();
+  const matched = matchPresetBySize(draft.width, draft.height, draft.unit);
+  const byName = q
+    ? MATERIAL_PRESETS.filter((p) => `${p.label} ${p.category} ${formatSize(p)}`.toLowerCase().includes(q)).slice(0, 5)
+    : [];
+  const combined = matched ? [matched, ...byName.filter((p) => p.id !== matched.id)] : byName;
+  return combined.slice(0, 5);
+}
+
+function readImageFiles(fileList, existing = []) {
+  const files = Array.from(fileList || []).filter((file) => file.type.startsWith("image/"));
+  const remaining = Math.max(0, MAX_REFERENCE_IMAGES - existing.length);
+  return Promise.all(files.slice(0, remaining).map((file) => new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve({ id: uid("REF"), name: file.name, size: file.size, type: file.type, src: reader.result });
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  }))).then((items) => items.filter(Boolean));
+}
+
+function RequestPreview({ form, ai, onReview }) {
+  const missing = getMissing(form);
+  const meta = deadlineMeta(form.deadline);
+  const output = ai || generateOutput(form);
+  return (
+    <div className="card sticky">
+      <div className="card-header">Request Preview</div>
+      <div className="card-body">
+        <div className="field"><div className="field-label">Project</div><strong>{form.title || "—"}</strong></div>
+        <div className="field"><div className="field-label">Brand / Type</div><span className="pill purple">{form.brand}</span> <span className="pill blue">{form.outputMode}</span></div>
+        <div className="field"><div className="field-label">Requestor Notes</div><p style={{ marginTop: 0 }}>{summarizeRequestDetails(form)}</p></div>
+        <div className="field"><div className="field-label">Deliverables</div>{form.deliverables.length ? form.deliverables.map((d) => <div key={d.id} className="small">• {d.label} — {formatSize(d)}</div>) : <div className="muted small">No deliverables added.</div>}</div>
+        <div className="field"><div className="field-label">Schedule</div><span className={`pill ${meta.badge}`}>{meta.label}</span> <span className="small muted">Due {formatDate(form.deadline)}</span></div>
+        <div className="field"><div className="field-label">Missing / Needs Confirmation</div>{missing.length ? missing.map((m) => <div className="warning" key={m}>{m}</div>) : output.missing.map((m) => <div className="success" key={m}>{m}</div>)}</div>
+        <button className="btn purple" style={{ width: "100%" }} onClick={onReview}>Review Request</button>
       </div>
-      <div className="filters">
-        <input placeholder="Search title, requestor, or brand..." value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
-        <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}><option value="">All statuses</option>{STATUSES.map((s) => <option key={s.key}>{s.key}</option>)}</select>
-        <select value={filters.output} onChange={(e) => setFilters({ ...filters, output: e.target.value })}><option value="">All outputs</option><option>Static</option><option>Motion</option></select>
-        <select value={filters.brandId} onChange={(e) => setFilters({ ...filters, brandId: e.target.value })}><option value="">All brands</option>{brandProfiles.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
+    </div>
+  );
+}
+
+function DeliverableComposer({ form, setForm }) {
+  const [draft, setDraft] = useState(blankDraft);
+  const suggestions = useMemo(() => getSuggestions(draft), [draft]);
+  const matched = matchPresetBySize(draft.width, draft.height, draft.unit);
+
+  const setDraftValue = (key, value) => setDraft((prev) => ({ ...prev, [key]: value }));
+
+  const choosePreset = (preset) => {
+    setDraft({ name: preset.label, width: preset.width, height: preset.height, unit: preset.unit });
+  };
+
+  const addDeliverable = () => {
+    const hasNA = draft.unit === "N/A" || draft.width === "N/A" || draft.height === "N/A";
+    const hasSize = hasNA || (String(draft.width).trim() && String(draft.height).trim() && String(draft.unit).trim());
+    if (!hasSize) return;
+    const presetByName = MATERIAL_PRESETS.find((p) => p.label.toLowerCase() === draft.name.trim().toLowerCase());
+    const label = draft.name.trim() || "Custom Size";
+    const next = normalizeDeliverable({
+      id: uid("DEL"),
+      presetId: presetByName?.id || matched?.id || null,
+      label,
+      width: draft.width || "",
+      height: draft.height || "",
+      unit: draft.unit || "",
+      source: presetByName ? "preset" : "custom",
+      status: "To Do",
+      options: { qr: false, fullMechanics: false, minimalCopy: false, ctaPriority: false },
+      notes: "",
+    });
+    setForm((prev) => ({ ...prev, deliverables: [...prev.deliverables, next] }));
+    setDraft(blankDraft);
+  };
+
+  const removeDeliverable = (id) => setForm((prev) => ({ ...prev, deliverables: prev.deliverables.filter((d) => d.id !== id) }));
+  const updateDeliverable = (id, patch) => setForm((prev) => ({ ...prev, deliverables: prev.deliverables.map((d) => d.id === id ? { ...d, ...patch } : d) }));
+  const updateOption = (id, option, value) => setForm((prev) => ({ ...prev, deliverables: prev.deliverables.map((d) => d.id === id ? { ...d, options: { ...(d.options || {}), [option]: value } } : d) }));
+
+  return (
+    <>
+      <div className="composer">
+        <Field label="Search or name deliverable"><input value={draft.name} onChange={(e) => setDraftValue("name", e.target.value)} placeholder="Type Social, A4, Pull-up, Logo, or custom name..." /></Field>
+        <div className="three-row">
+          <Field label="Width"><input value={draft.width} onChange={(e) => setDraftValue("width", e.target.value)} placeholder="2.75" /></Field>
+          <Field label="Height"><input value={draft.height} onChange={(e) => setDraftValue("height", e.target.value)} placeholder="6.5" /></Field>
+          <Field label="Unit"><select value={draft.unit} onChange={(e) => setDraftValue("unit", e.target.value)}><option>px</option><option>in</option><option>ft</option><option>mm</option><option>cm</option><option>N/A</option></select></Field>
+        </div>
+        {suggestions.length > 0 && <div className="suggestions">
+          {suggestions.map((s) => <button key={s.id} type="button" className="suggestion" onClick={() => choosePreset(s)}>
+            <span><strong>{s.label}</strong><br /><small className="muted">{s.category}</small></span>
+            <strong>{formatSize(s)}</strong>
+          </button>)}
+        </div>}
+        {matched && !draft.name.trim() && <div className="warning" style={{ marginTop: 10 }}>Size matches preset: <strong>{matched.label}</strong>. Click the suggestion to use that name, or add as Custom Size.</div>}
+        <button className="btn" type="button" onClick={addDeliverable} disabled={!(draft.unit === "N/A" || (draft.width && draft.height && draft.unit))}>+ Add Deliverable</button>
       </div>
-      <div className="board-wrap"><div className="board">
-        {STATUSES.map((status) => {
-          const items = filteredRequests.filter((r) => r.status === status.key);
-          return <section className="column" key={status.key}>
-            <div className="column-head"><div><div className="column-title"><span className="dot" style={{ background: status.color }} />{status.title}</div><div className="tiny">{items.length} open task{items.length === 1 ? "" : "s"}</div></div></div>
-            <button className="add-task" onClick={resetBuilder}>+ Add Task</button>
-            {items.map((r) => {
-              const formData = safeForm(r.form);
-              const brand = getBrand(brandProfiles, formData.brandId);
-              const pri = priorityFromDate(formData.deadline);
-              const needs = (r.ai?.missing || []).some((m) => !/No major gaps/i.test(m));
-              return <article className="task-card" key={r.id} onClick={() => openRequest(r.id)}>
-                <div className="task-top"><div className="task-tags"><Pill tone="purple">{brand.name}</Pill><Pill tone="blue">{formData.outputMode}</Pill>{pri.label !== "Normal" && <Pill tone={pri.cls}>{pri.label}</Pill>}{needs && <Pill tone="yellow">Needs info</Pill>}</div><span className="tiny">•••</span></div>
-                <div className="task-title">{formData.title || "Untitled request"}</div>
-                <div className="task-brief">{r.ai?.brief || "No AI brief yet."}</div>
-                <div className="task-footer"><div className="task-meta"><span className="avatar">{initials(formData.requestor)}</span><span>Due {formatDate(formData.deadline)}</span><span>{formData.deliverables.length} size{formData.deliverables.length === 1 ? "" : "s"}</span></div><div className="task-meta"><span>💬 {r.comments?.length || 0}</span><span>📎 {formData.files.length}</span></div></div>
-              </article>;
-            })}
-          </section>;
-        })}
-      </div></div>
-    </div>;
-  }
 
-  function renderBuilderReviewPanel() {
-    if (!ai) {
-      return <aside className="sticky-panel"><div className="card"><div className="card-head"><h3>Request Review</h3><Pill tone={priority.cls}>{priority.label}</Pill></div><div className="card-body">
-        <h2 style={{ marginBottom: 8 }}>{form.title || "Untitled request"}</h2>
-        <p className="tiny" style={{ marginTop: 0 }}>{currentBrand.name} · {form.outputMode} · {form.deliverables.length} deliverable{form.deliverables.length === 1 ? "" : "s"}</p>
-        <hr style={{ border: 0, borderTop: "1px solid #f0f0f5", margin: "14px 0" }} />
-        <h3 style={{ marginBottom: 10 }}>Missing essentials</h3>
-        {missing.length ? missing.map((m) => <div className="note warn" key={m}>{m}</div>) : <div className="note good">Enough details to generate AI review.</div>}
-        <button className="btn purple full" onClick={generate} style={{ marginTop: 10 }}>Generate AI Brief + KV Direction</button>
-        <button className="btn full" disabled style={{ marginTop: 8 }}>Submit after AI review</button>
-      </div></div></aside>;
-    }
-
-    return <aside className="sticky-panel"><div className="card"><div className="card-head"><h3>AI Review</h3><Pill tone="purple">Preview</Pill></div><div className="card-body">
-      <h3>AI Brief</h3><p className="brief-text" style={{ fontSize: 13 }}>{ai.brief}</p>
-      <h3 style={{ marginTop: 16, marginBottom: 10 }}>Detected request hierarchy</h3><HierarchyBlock hierarchy={ai.hierarchy} />
-      <h3 style={{ marginTop: 16, marginBottom: 10 }}>Missing info</h3>{ai.missing.map((m) => <div className={/No major gaps/i.test(m) ? "note good" : "note warn"} key={m}>{m}</div>)}
-      <h3 style={{ marginTop: 16, marginBottom: 10 }}>Visual Direction</h3><VisualDirectionBlock visualDirection={ai.visualDirection} compact />
-      <div className="inline-actions" style={{ marginTop: 18 }}><button className="btn secondary" onClick={generate}>Regenerate</button><button className="btn purple" onClick={submitRequest}>Submit to Tasks</button></div>
-    </div></div></aside>;
-  }
-
-  function renderBuilder() {
-    return <div className="main-inner">
-      <div className="page-head"><div><h1>Create Request</h1><p className="muted">Fast intake first. AI organizes the messy details after.</p></div><button className="btn secondary" onClick={() => setView("dashboard")}>Back to Tasks</button></div>
-      <div className="builder-layout">
-        <main className="builder-main">
-          <Card title="Project basics">
-            <div className="row"><Field label="Project title"><input value={form.title} onChange={(e) => updateForm("title", e.target.value)} placeholder="Example: Todo Laki Summer" /></Field><Field label="Brand"><select value={form.brandId} onChange={(e) => updateForm("brandId", e.target.value)}>{brandProfiles.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></Field></div>
-            <Field label="Static or Motion?"><div className="segmented">{[
-              { key: "Static", helper: "Posters, banners, images" },
-              { key: "Motion", helper: "Videos, reels, animations" },
-            ].map((m) => <button key={m.key} className={`segment ${form.outputMode === m.key ? "active" : ""}`} onClick={() => updateForm("outputMode", m.key)}><strong>{m.key}</strong><span className="tiny">{m.helper}</span></button>)}</div></Field>
-          </Card>
-
-          <Card title="What size/s do you need?">
-            <Field label="Search preset sizes"><input value={deliverableQuery} onChange={(e) => setDeliverableQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && deliverableSuggestions[0]) { e.preventDefault(); addDeliverable(deliverableSuggestions[0]); } }} placeholder="Type Socia, A4, Pull-up, Logo..." />
-              {!!deliverableSuggestions.length && <div className="suggestions">{deliverableSuggestions.map((d) => <button className="suggestion" key={d.id} onClick={() => addDeliverable(d)}><span><strong>{d.label}</strong><br /><span className="tiny">{d.group}</span></span><span className="tiny">{formatDeliverable(d).replace(`${d.label} — `, "")}</span></button>)}</div>}
-            </Field>
-            <div className="deliverable-list">{form.deliverables.length ? form.deliverables.map((d) => <div className="list-item" key={d.id}><div><strong>{formatDeliverable(d)}</strong><div className="tiny">{d.group || "Custom"}</div></div><button className="btn ghost" onClick={() => removeDeliverable(d.id)}>Remove</button></div>) : <div className="note">No deliverables yet. Search a preset or add a custom size.</div>}</div>
-            <div className="custom-box"><h3 style={{ marginBottom: 10 }}>Add custom size</h3><Field label="Deliverable name / purpose"><input value={customDeliverable.label} onChange={(e) => setCustomDeliverable({ ...customDeliverable, label: e.target.value })} placeholder="Example: Tarpaulin, LED Screen, Kiosk Banner" /></Field><div className="three-row"><Field label="Width"><input value={customDeliverable.width} onChange={(e) => setCustomDeliverable({ ...customDeliverable, width: e.target.value })} placeholder="2.75" /></Field><Field label="Height"><input value={customDeliverable.height} onChange={(e) => setCustomDeliverable({ ...customDeliverable, height: e.target.value })} placeholder="6.5" /></Field><Field label="Unit"><select value={customDeliverable.unit} onChange={(e) => setCustomDeliverable({ ...customDeliverable, unit: e.target.value })}>{UNITS.map((u) => <option key={u}>{u}</option>)}<option>N/A</option></select></Field></div><button className="btn secondary" onClick={addCustomDeliverable}>+ Add Custom Deliverable</button></div>
-          </Card>
-
-          <Card title="Request details">
-            <p className="tiny" style={{ marginTop: 0 }}>Paste the request exactly how you would normally send it. Messy or incomplete is okay — AI will organize it after.</p>
-            <textarea value={form.requestDetails} onChange={(e) => updateForm("requestDetails", e.target.value)} style={{ minHeight: 156 }} placeholder={`Example:\nTodo Laki Summer poster\n\nDeposit ₱50 to get:\n- ₱50 bonus\n- Food pack\n- LakiWin merchandise\n- Raffle prizes up to ₱50,000\n\nBeach / summer vibe`} />
-          </Card>
-
-          <Card title="Visual references / moodboard" right={<Pill tone="gray">Optional</Pill>}>
-            <p className="tiny" style={{ marginTop: 0 }}>Upload pegs, moodboards, or reference images. Optional tags help AI understand what to borrow.</p>
-            <Field label="Reference links"><textarea value={form.referenceLinks} onChange={(e) => updateForm("referenceLinks", e.target.value)} placeholder="Paste Drive, Pinterest, Behance, or sample links here." /></Field>
-            <Field label="Reference tags"><div>{REFERENCE_TAGS.map((tag) => <button key={tag} type="button" className={`pill ${form.referenceTags.includes(tag) ? "purple" : "gray"}`} onClick={() => toggleReferenceTag(tag)}>{tag}</button>)}</div></Field>
-            <Field label="Attach reference images"><input type="file" multiple accept="image/*" onChange={(e) => handleFiles(e.target.files)} /><div className="ref-grid">{form.files.map((f) => <div className="ref-chip" key={f.id}><strong>{f.name}</strong><div className="tiny">{Math.round((f.size || 0) / 1024)} KB</div></div>)}</div></Field>
-          </Card>
-
-          <Card title="Deadline and requestor">
-            <div className="row"><Field label="Date needed"><input type="date" value={form.deadline} onChange={(e) => updateForm("deadline", e.target.value)} /></Field><Field label="Requested by"><input value={form.requestor} onChange={(e) => updateForm("requestor", e.target.value)} placeholder="Name / team" /></Field></div>
-          </Card>
-        </main>
-        {renderBuilderReviewPanel()}
+      <div className="deliverable-list">
+        {form.deliverables.map((d) => (
+          <div className="deliverable-item" key={d.id}>
+            <div className="deliverable-head">
+              <div><strong>{d.label} — {formatSize(d)}</strong><br /><small className="muted">Optional settings for this specific material</small></div>
+              <button className="btn ghost" type="button" onClick={() => removeDeliverable(d.id)}>Remove</button>
+            </div>
+            <div className="deliverable-options">
+              <label className="check-row"><input type="checkbox" checked={!!d.options?.qr} onChange={(e) => updateOption(d.id, "qr", e.target.checked)} /> Needs QR code</label>
+              <label className="check-row"><input type="checkbox" checked={!!d.options?.fullMechanics} onChange={(e) => updateOption(d.id, "fullMechanics", e.target.checked)} /> Full mechanics</label>
+              <label className="check-row"><input type="checkbox" checked={!!d.options?.minimalCopy} onChange={(e) => updateOption(d.id, "minimalCopy", e.target.checked)} /> Minimal copy only</label>
+              <label className="check-row"><input type="checkbox" checked={!!d.options?.ctaPriority} onChange={(e) => updateOption(d.id, "ctaPriority", e.target.checked)} /> CTA priority</label>
+            </div>
+            <textarea style={{ minHeight: 58, marginTop: 10 }} value={d.notes || ""} onChange={(e) => updateDeliverable(d.id, { notes: e.target.value })} placeholder="Specific notes for this deliverable only. Example: QR only for A4; social version should be short." />
+          </div>
+        ))}
       </div>
-    </div>;
-  }
+    </>
+  );
+}
 
-  function renderPromptSection() {
-    if (!selected) return null;
-    function copyPrompt() {
-      navigator.clipboard?.writeText(visualPromptDraft);
-    }
-    function generateReference() {
-      updateRequest(selected.id, (r) => ({ ...r, generatedReference: { createdAt: new Date().toISOString(), promptPreview: truncate(visualPromptDraft, 220) } }));
-    }
-    return <div className="read-card">
-      <div className="inline-actions" style={{ justifyContent: "space-between", marginBottom: 12 }}><div><h3>AI Visual Reference Prompt</h3><p className="tiny" style={{ margin: "4px 0 0" }}>Reference image only — not final artwork.</p></div><Pill tone="purple">Reference only</Pill></div>
-      {!promptExpanded ? <div className="prompt-preview">{visualPromptDraft}</div> : <textarea className="prompt-textarea" value={visualPromptDraft} onChange={(e) => setVisualPromptDraft(e.target.value)} />}
-      <div className="inline-actions" style={{ marginTop: 12 }}><button className="btn secondary" onClick={() => setPromptExpanded(!promptExpanded)}>{promptExpanded ? "Hide Prompt" : "Show/Edit Prompt"}</button><button className="btn secondary" onClick={copyPrompt}>Copy Prompt</button><button className="btn purple" onClick={generateReference}>Generate Reference Image</button></div>
-      {selected.generatedReference && <div className="note purple" style={{ marginTop: 12 }}>Reference generation prepared: {selected.generatedReference.promptPreview}</div>}
-    </div>;
-  }
+function ReferenceUploader({ form, setForm }) {
+  const [open, setOpen] = useState(false);
+  const [draftImages, setDraftImages] = useState(form.referenceImages || []);
+  const [dragging, setDragging] = useState(false);
 
-  function renderDetailPanel() {
-    if (!selected) return null;
-    const formData = safeForm(selected.form);
-    const aiData = selected.ai || generateAi(formData, brandProfiles);
-    const unresolved = (selected.comments || []).filter((c) => !c.resolved);
-    function postComment() {
-      if (!commentText.trim()) return;
-      updateRequest(selected.id, (r) => ({ ...r, comments: [...(r.comments || []), { id: uid("COM"), author: "You", text: commentText.trim(), resolved: false, createdAt: new Date().toISOString() }] }));
-      setCommentText("");
-    }
-    return <aside className="sticky-panel"><div className="card"><div className="card-head"><h3>Task Panel</h3><Pill tone={priorityFromDate(formData.deadline).cls}>{priorityFromDate(formData.deadline).label}</Pill></div><div className="card-body">
-      <Field label="Status"><select value={selected.status} onChange={(e) => updateRequest(selected.id, (r) => ({ ...r, status: e.target.value }))}>{STATUSES.map((s) => <option key={s.key}>{s.key}</option>)}</select></Field>
-      <h3 style={{ margin: "14px 0 8px" }}>Deliverables</h3>{formData.deliverables.length ? formData.deliverables.map((d) => <div className="note" key={d.id}>{formatDeliverable(d)}</div>) : <div className="note warn">No deliverables selected.</div>}
-      <h3 style={{ margin: "16px 0 8px" }}>Missing Info</h3>{aiData.missing.map((m) => <div className={/No major gaps/i.test(m) ? "note good" : "note warn"} key={m}>{m}</div>)}
-      <h3 style={{ margin: "16px 0 8px" }}>Comments / Clarifications</h3>
-      <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Write a comment or clarification..." style={{ minHeight: 78 }} />
-      <button className="btn secondary full" onClick={postComment} style={{ marginTop: 8 }}>Post Comment</button>
-      <div style={{ marginTop: 12 }}>{(selected.comments || []).map((c) => <div className={`comment ${c.resolved ? "resolved" : ""}`} key={c.id}><strong>{c.author}</strong><p style={{ margin: "5px 0 8px" }}>{c.text}</p>{c.resolved ? <Pill tone="green">Resolved</Pill> : <button className="btn secondary" onClick={() => updateRequest(selected.id, (r) => ({ ...r, comments: (r.comments || []).map((x) => x.id === c.id ? { ...x, resolved: true } : x) }))}>Resolve</button>}</div>)}</div>
-      <hr style={{ border: 0, borderTop: "1px solid #f0f0f5", margin: "16px 0" }} />
-      {unresolved.length ? <div className="note warn">{unresolved.length} unresolved clarification{unresolved.length === 1 ? "" : "s"}.</div> : <div className="note good">All clarifications resolved.</div>}
-      <button className="btn danger full" onClick={deleteSelected}>Delete Request</button>
-    </div></div></aside>;
-  }
+  useEffect(() => {
+    if (open) setDraftImages(form.referenceImages || []);
+  }, [open, form.referenceImages]);
 
-  function renderDetail() {
-    if (!selected) return <div className="main-inner"><div className="note warn">No request selected.</div></div>;
-    const formData = safeForm(selected.form);
-    const brand = getBrand(brandProfiles, formData.brandId);
-    const aiData = selected.ai || generateAi(formData, brandProfiles);
-    return <div className="main-inner">
-      <div className="page-head"><div><button className="btn secondary" onClick={() => setView("dashboard")}>← Back to Tasks</button><h1 style={{ marginTop: 14 }}>{formData.title || "Untitled request"}</h1><p className="muted">{brand.name} · {formData.outputMode} · Due {formatDate(formData.deadline)} · Requested by {formData.requestor || "—"}</p></div></div>
-      <div className="details-layout">
-        <main className="detail-main">
-          <div className="read-card"><h3>AI Brief</h3><p className="brief-text">{aiData.brief}</p></div>
-          <div className="read-card"><h3>Detected Request Hierarchy</h3><HierarchyBlock hierarchy={aiData.hierarchy} /></div>
-          <div className="read-card"><h3>Visual Direction (KV)</h3><VisualDirectionBlock visualDirection={aiData.visualDirection} /></div>
-          {renderPromptSection()}
-          <div className="read-card"><h3>Request Details</h3><p className="brief-text" style={{ whiteSpace: "pre-wrap" }}>{formData.requestDetails || "No request details provided."}</p></div>
-          <details><summary>References / Attachments</summary><div>{formData.referenceLinks && <p className="brief-text" style={{ whiteSpace: "pre-wrap" }}>{formData.referenceLinks}</p>}<div>{formData.referenceTags.map((tag) => <Pill key={tag} tone="purple">{tag}</Pill>)}</div><div className="ref-grid">{formData.files.map((f) => <div className="ref-chip" key={f.id || f.name}><strong>{f.name}</strong><div className="tiny">{Math.round((f.size || 0) / 1024)} KB</div></div>)}</div>{!formData.referenceLinks && !formData.files.length && <div className="note">No references attached.</div>}</div></details>
-        </main>
-        {renderDetailPanel()}
+  const addFiles = async (files) => {
+    const next = await readImageFiles(files, draftImages);
+    setDraftImages((prev) => [...prev, ...next].slice(0, MAX_REFERENCE_IMAGES));
+  };
+
+  const removeImage = (id) => setDraftImages((prev) => prev.filter((img) => img.id !== id));
+
+  const confirmImages = () => {
+    setForm((prev) => ({ ...prev, referenceImages: draftImages }));
+    setOpen(false);
+  };
+
+  return (
+    <div className="reference-panel">
+      <button className="btn secondary" type="button" onClick={() => setOpen(true)}>+ Add reference images</button>
+      {form.referenceImages.length > 0 && <div className="thumb-strip">
+        <span className="pill">{form.referenceImages.length} image{form.referenceImages.length > 1 ? "s" : ""} attached</span>
+        {form.referenceImages.slice(0, 5).map((img) => <img className="thumb" src={img.src} alt={img.name} key={img.id} />)}
+        {form.referenceImages.length > 5 && <span className="pill">+{form.referenceImages.length - 5}</span>}
+      </div>}
+      <Field label="Reference notes"><textarea value={form.referenceNotes} onChange={(e) => setForm((prev) => ({ ...prev, referenceNotes: e.target.value }))} placeholder="What should we borrow from the references? Example: Use layout and hierarchy only. Keep colors LakiWin-branded." /></Field>
+
+      {open && <div className="modal-bg">
+        <div className="modal">
+          <div className="modal-header"><h2 style={{ margin: 0 }}>Upload reference images</h2><span className="muted small">{draftImages.length}/{MAX_REFERENCE_IMAGES}</span></div>
+          <div className="modal-body">
+            <div
+              className={`upload-zone ${dragging ? "dragging" : ""}`}
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setDragging(false); addFiles(e.dataTransfer.files); }}
+            >
+              <div>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>⇧</div>
+                <strong>Drag images here</strong>
+                <p className="muted">or choose screenshots / downloaded reference images</p>
+                <label className="btn secondary" style={{ display: "inline-flex", cursor: "pointer", textTransform: "none", letterSpacing: 0, color: "#18181b" }}>
+                  Choose files
+                  <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => addFiles(e.target.files)} />
+                </label>
+              </div>
+            </div>
+
+            {draftImages.length > 0 && <div className="thumb-grid">
+              {draftImages.map((img) => <div className="thumb-card" key={img.id}>
+                <button className="thumb-remove" type="button" onClick={() => removeImage(img.id)}>×</button>
+                <img src={img.src} alt={img.name} />
+                <div className="small" style={{ marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{img.name}</div>
+              </div>)}
+            </div>}
+
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginTop: 18 }}>
+              <button className="btn secondary" type="button" onClick={() => setDraftImages([])}>Clear all</button>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn secondary" type="button" onClick={() => setOpen(false)}>Cancel</button>
+                <button className="btn purple" type="button" onClick={confirmImages}>Add</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>}
+    </div>
+  );
+}
+
+function RequestReviewModal({ form, ai, onCancel, onSubmit }) {
+  const missing = getMissing(form);
+  const output = ai || generateOutput(form);
+  return (
+    <div className="modal-bg">
+      <div className="modal large">
+        <div className="modal-header"><h2 style={{ margin: 0 }}>Review before submitting</h2><button className="btn ghost" onClick={onCancel}>×</button></div>
+        <div className="modal-body">
+          <div className="detail-grid">
+            <div>
+              <div className="info-box"><div className="field-label">Project</div><h2 style={{ margin: "0 0 8px" }}>{form.title || "Untitled"}</h2><span className="pill purple">{form.brand}</span> <span className="pill blue">{form.outputMode}</span></div>
+              <div className="info-box"><div className="field-label">Original Request Details</div><p style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>{form.requestDetails || "—"}</p></div>
+              <div className="info-box"><div className="field-label">Deliverables</div>{form.deliverables.length ? form.deliverables.map((d) => <div key={d.id}>• <strong>{d.label}</strong> — {formatSize(d)}</div>) : <span className="muted">No deliverables</span>}</div>
+              <div className="info-box"><div className="field-label">AI Organized Brief</div><p>{output.brief}</p></div>
+            </div>
+            <div>
+              <div className="info-box"><div className="field-label">Schedule</div><p>Created now → Due {formatDate(form.deadline)}</p><p>Requested by: <strong>{form.requestor || "—"}</strong></p></div>
+              <div className="info-box"><div className="field-label">Missing / Warnings</div>{missing.length ? missing.map((m) => <div className="warning" key={m}>{m}</div>) : output.missing.map((m) => <div className="success" key={m}>{m}</div>)}</div>
+              <div className="info-box"><div className="field-label">References</div><p>{form.referenceImages.length} image{form.referenceImages.length === 1 ? "" : "s"} attached</p><p className="muted small">{form.referenceNotes || "No reference notes."}</p></div>
+            </div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 10 }}><button className="btn secondary" onClick={onCancel}>Back to Edit</button><button className="btn purple" onClick={onSubmit}>Submit Request</button></div>
+        </div>
       </div>
-    </div>;
-  }
+    </div>
+  );
+}
 
-  function newBrandDraft() {
-    setBrandDraft({ id: uid("BRAND"), name: "New Brand", description: "", tone: "", colors: "", typography: "", motifs: "", dos: "", donts: "", compliance: "", aiNotes: "" });
-  }
+function TaskCard({ request, onOpen, onDragStart }) {
+  const meta = deadlineMeta(request.form.deadline);
+  const deliverables = request.form.deliverables || [];
+  const done = deliverables.filter((d) => d.status === "Done").length;
+  const total = deliverables.length;
+  return (
+    <div
+      className="task-card"
+      draggable
+      onDragStart={(e) => onDragStart(e, request.id)}
+      onClick={() => onOpen(request.id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter") onOpen(request.id); }}
+    >
+      <span className={`deadline-strip ${meta.strip}`} />
+      <div className="task-top">
+        <span className="pill purple">{request.form.outputMode}</span>
+        <button className="btn ghost" type="button" onClick={(e) => e.stopPropagation()}>•••</button>
+      </div>
+      <h3 className="task-title">{request.form.title || "Untitled Request"}</h3>
+      <div className="task-meta">
+        <span>◷ {formatDateTime(request.createdAt)} → {formatDate(request.form.deadline)}</span>
+        <span className="task-icon">☑ {done}/{total || 0}</span>
+        <span className="task-icon">💬 {request.comments?.length || 0}{request.unreadComments > 0 && <span className="comment-badge">{request.unreadComments}</span>}</span>
+      </div>
+    </div>
+  );
+}
 
-  function saveBrandDraft() {
-    if (!brandDraft?.name?.trim()) return;
-    setBrandProfiles((prev) => prev.some((b) => b.id === brandDraft.id) ? prev.map((b) => b.id === brandDraft.id ? brandDraft : b) : [...prev, brandDraft]);
-  }
+function TaskModal({ request, setRequests, onClose, onDelete }) {
+  const [commentText, setCommentText] = useState("");
+  const [commentType, setCommentType] = useState("General");
+  const [assetType, setAssetType] = useState("Key Visual");
+  if (!request) return null;
+  const ai = request.ai || generateOutput(request.form);
+  const meta = deadlineMeta(request.form.deadline);
+  const assetPrompt = buildAssetPrompt(request.form, ai, assetType);
+  const deliverables = request.form.deliverables || [];
+  const doneCount = deliverables.filter((d) => d.status === "Done").length;
 
-  function deleteBrand(id) {
-    if (brandProfiles.length <= 1) return;
-    if (window.confirm("Delete this brand profile?")) {
-      setBrandProfiles(brandProfiles.filter((b) => b.id !== id));
-      if (brandDraft?.id === id) setBrandDraft(null);
+  const appendActivityToRequest = (r, action, detail = "") => ({
+    ...r,
+    activity: [makeActivity(action, detail), ...(r.activity || [])],
+  });
+
+  const changeTaskStatus = (status) => {
+    if (status === request.status) return;
+    let revisionNote = "";
+    if (status === "For Revision") {
+      revisionNote = window.prompt("Add revision note for the designer/requestor. Leave blank if there is no specific note yet.") || "";
     }
-  }
+    setRequests((prev) => prev.map((r) => {
+      if (r.id !== request.id) return r;
+      let next = appendActivityToRequest({ ...r, status }, "Status changed", `${r.status} → ${status}`);
+      if (revisionNote.trim()) {
+        const revisionComment = { id: uid("COM"), type: "Revision", author: "Current User", body: revisionNote.trim(), createdAt: new Date().toISOString() };
+        next = {
+          ...next,
+          comments: [...(next.comments || []), revisionComment],
+          unreadComments: (next.unreadComments || 0) + 1,
+          activity: [makeActivity("Revision note added", revisionNote.trim()), ...(next.activity || [])],
+        };
+      }
+      return next;
+    }));
+  };
 
-  function renderBrands() {
-    const draft = brandDraft || brandProfiles[0];
-    return <div className="main-inner"><div className="page-head"><div><h1>Brand Profiles</h1><p className="muted">Admin area for adding, editing, and deleting brand guidelines used by AI.</p></div><button className="btn purple" onClick={newBrandDraft}>+ Add Brand Profile</button></div>
-      <div className="brand-grid"><aside className="brand-list">{brandProfiles.map((b) => <button key={b.id} className={`brand-row ${draft?.id === b.id ? "active" : ""}`} onClick={() => setBrandDraft({ ...b })}><strong>{b.name}</strong><div className="tiny">{truncate(b.description, 70)}</div></button>)}</aside>
-      <main className="card"><div className="card-head"><h3>Edit Brand Guidelines</h3><div className="inline-actions"><button className="btn secondary" onClick={saveBrandDraft}>Save / Update</button><button className="btn danger" onClick={() => deleteBrand(draft.id)}>Delete</button></div></div><div className="card-body">
-        {[
-          ["name", "Brand name"], ["description", "Brand description"], ["tone", "Tone / personality"], ["colors", "Colors"], ["typography", "Typography"], ["motifs", "Visual motifs"], ["dos", "Do's"], ["donts", "Don'ts"], ["compliance", "Compliance notes"], ["aiNotes", "AI instruction notes"],
-        ].map(([key, label]) => <Field label={label} key={key}>{key === "name" ? <input value={draft?.[key] || ""} onChange={(e) => setBrandDraft({ ...draft, [key]: e.target.value })} /> : <textarea value={draft?.[key] || ""} onChange={(e) => setBrandDraft({ ...draft, [key]: e.target.value })} />}</Field>)}
-      </div></main></div></div>;
-  }
+  const changeAssignee = (assignedTo) => {
+    setRequests((prev) => prev.map((r) => {
+      if (r.id !== request.id) return r;
+      return appendActivityToRequest({ ...r, form: { ...r.form, assignedTo } }, "Assignee changed", assignedTo);
+    }));
+  };
 
-  function renderSimplePage(title, body) {
-    return <div className="main-inner"><div className="read-card"><h1>{title}</h1><p className="muted readable">{body}</p></div></div>;
-  }
+  const updateDeliverable = (id, patch, activityDetail = "") => {
+    setRequests((prev) => prev.map((r) => {
+      if (r.id !== request.id) return r;
+      const target = r.form.deliverables.find((d) => d.id === id);
+      const updatedDeliverables = r.form.deliverables.map((d) => d.id === id ? { ...d, ...patch } : d);
+      const next = { ...r, form: { ...r.form, deliverables: updatedDeliverables } };
+      return activityDetail && target ? appendActivityToRequest(next, activityDetail, target.label) : next;
+    }));
+  };
 
-  return <div className="app"><style>{css}</style>{renderTopbar()}<div className="shell">{renderSidebar()}<main className="main">
-    {view === "dashboard" && renderDashboard()}
-    {view === "builder" && renderBuilder()}
-    {view === "detail" && renderDetail()}
-    {view === "brands" && renderBrands()}
-    {view === "notifications" && renderSimplePage("Notifications", "Prototype placeholder for request updates, mentions, and clarification alerts.")}
-    {view === "notes" && renderSimplePage("Notes", "Prototype placeholder for internal creative notes.")}
-    {view === "integrations" && renderSimplePage("Integrations", "Prototype placeholder for future integrations like Drive, Slack, or image generation APIs.")}
-    {view === "help" && renderSimplePage("Help", "This prototype is designed for fast request intake, AI brief reconstruction, comments, and designer-side task management.")}
-  </main></div></div>;
+  const updateDeliverableStatus = (id, status) => {
+    const current = deliverables.find((d) => d.id === id);
+    if (!current || current.status === status) return;
+    updateDeliverable(id, { status }, "Deliverable status changed");
+  };
+
+  const toggleDeliverableDone = (id, checked) => {
+    const status = checked ? "Done" : "In Progress";
+    updateDeliverableStatus(id, status);
+  };
+
+  const addComment = () => {
+    const body = commentText.trim();
+    if (!body) return;
+    const nextComment = { id: uid("COM"), type: commentType, author: "Current User", body, createdAt: new Date().toISOString() };
+    setRequests((prev) => prev.map((r) => r.id === request.id ? {
+      ...r,
+      comments: [...(r.comments || []), nextComment],
+      unreadComments: 0,
+      activity: [makeActivity(`${commentType} comment added`, body), ...(r.activity || [])],
+    } : r));
+    setCommentText("");
+    setCommentType("General");
+  };
+
+  return (
+    <div className="modal-bg">
+      <div className="modal large">
+        <div className="modal-header">
+          <div>
+            <h2 style={{ margin: 0 }}>{request.form.title || "Untitled Request"}</h2>
+            <div className="muted small">{request.form.brand} • {request.form.outputMode} • {formatDateTime(request.createdAt)} → {formatDate(request.form.deadline)} • {meta.label}</div>
+          </div>
+          <button className="btn ghost" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body">
+          <div className="detail-grid">
+            <main>
+              <div className="info-box">
+                <div className="field-label">AI Project Brief</div>
+                <p style={{ marginBottom: 0 }}>{ai.brief}</p>
+              </div>
+
+              <div className="info-box">
+                <div className="field-label">Deliverables / Output Tracker</div>
+                <p className="muted small" style={{ marginTop: 0 }}>{doneCount}/{deliverables.length || 0} deliverable{deliverables.length === 1 ? "" : "s"} done. Tick a deliverable when that specific size/material is finished.</p>
+                <div className="table-ish">
+                  {deliverables.length ? deliverables.map((d) => (
+                    <div className="deliverable-detail" key={d.id}>
+                      <div className="deliverable-row-main">
+                        <input className="deliverable-check" type="checkbox" checked={d.status === "Done"} onChange={(e) => toggleDeliverableDone(d.id, e.target.checked)} />
+                        <div>
+                          <strong>{d.label}</strong><br />
+                          <span className="muted small">{formatSize(d)}{d.notes ? ` • ${d.notes}` : ""}</span>
+                        </div>
+                        <select value={d.status || "To Do"} onChange={(e) => updateDeliverableStatus(d.id, e.target.value)}>{DELIVERABLE_STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
+                      </div>
+                      <div className="output-fields">
+                        <input value={d.outputUrl || ""} onChange={(e) => updateDeliverable(d.id, { outputUrl: e.target.value })} onBlur={(e) => { if (e.target.value.trim()) updateDeliverable(d.id, { outputUrl: e.target.value }, "Output link added"); }} placeholder="Paste output/final file link for this deliverable..." />
+                        <textarea style={{ minHeight: 56 }} value={d.outputNotes || ""} onChange={(e) => updateDeliverable(d.id, { outputNotes: e.target.value })} placeholder="Output notes, file version, or handoff notes..." />
+                      </div>
+                    </div>
+                  )) : <span className="muted">No deliverables added.</span>}
+                </div>
+              </div>
+
+              <div className="info-box">
+                <div className="field-label">Key Visual Direction</div>
+                <p><strong>Mood:</strong> {ai.visualDirection?.mood}</p>
+                <p><strong>Color Balance:</strong> {ai.visualDirection?.colorBalance}</p>
+                <p><strong>Core Idea:</strong> {ai.visualDirection?.coreIdea}</p>
+                <div>{ai.visualDirection?.imagery?.map((tag) => <span className="pill" key={tag} style={{ margin: 3 }}>{tag}</span>)}</div>
+              </div>
+
+              <div className="info-box">
+                <div className="field-label">AI Asset Prompt Generator</div>
+                <p className="muted small" style={{ marginTop: 0 }}>Generate copy-paste prompts for AI asset creation, not final artwork.</p>
+                <div className="asset-type-grid">
+                  {ASSET_PROMPT_TYPES.map((type) => <button key={type} type="button" className={`asset-type ${assetType === type ? "active" : ""}`} onClick={() => setAssetType(type)}>{type}</button>)}
+                </div>
+                <textarea readOnly style={{ minHeight: 190 }} value={assetPrompt} />
+                <button className="btn secondary" onClick={() => navigator.clipboard?.writeText(assetPrompt)}>Copy asset prompt</button>
+              </div>
+
+              <div className="info-box">
+                <div className="field-label">Original Request Details</div>
+                <p style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>{request.form.requestDetails || "—"}</p>
+              </div>
+            </main>
+
+            <aside>
+              <div className="info-box">
+                <div className="field-label">Task Controls</div>
+                <span className={`pill ${meta.badge}`}>{meta.label}</span>
+                <div style={{ marginTop: 12 }}><label>Status</label><select value={request.status} onChange={(e) => changeTaskStatus(e.target.value)}>{STATUS_COLUMNS.map((s) => <option key={s}>{s}</option>)}</select></div>
+                <div style={{ marginTop: 12 }}><label>Assigned To</label><select value={request.form.assignedTo || "Unassigned"} onChange={(e) => changeAssignee(e.target.value)}>{DESIGNERS.map((d) => <option key={d}>{d}</option>)}</select></div>
+                <p className="small muted">Requested by: <strong>{request.form.requestor || "—"}</strong></p>
+              </div>
+
+              <div className="info-box">
+                <div className="field-label">References / Attachments</div>
+                {request.form.referenceImages?.length ? <div className="thumb-strip">{request.form.referenceImages.map((img) => <img className="thumb" src={img.src} alt={img.name} key={img.id} />)}</div> : <p className="muted">No reference images.</p>}
+                <p className="small muted" style={{ whiteSpace: "pre-wrap" }}>{request.form.referenceNotes || "No reference notes."}</p>
+              </div>
+
+              <div className="info-box">
+                <div className="field-label">Comments / Clarifications</div>
+                {request.comments?.length ? request.comments.map((c) => <div className="comment" key={c.id}><strong>{c.author}</strong><span className="comment-type">{c.type || "General"}</span><br /><span>{c.body}</span><br /><small className="muted">{formatActivityTime(c.createdAt)}</small></div>) : <p className="muted">No comments yet.</p>}
+                <div className="row" style={{ marginTop: 10 }}>
+                  <select value={commentType} onChange={(e) => setCommentType(e.target.value)}>{COMMENT_TYPES.map((type) => <option key={type}>{type}</option>)}</select>
+                  <button className="btn secondary" onClick={() => setCommentType("Revision")}>Revision note</button>
+                </div>
+                <textarea style={{ minHeight: 72, marginTop: 8 }} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add comment, clarification, revision note, or approval note..." />
+                <button className="btn" style={{ width: "100%" }} onClick={addComment}>Add Comment</button>
+              </div>
+
+              <div className="info-box">
+                <div className="field-label">Activity History</div>
+                {request.activity?.length ? request.activity.map((item) => <div className="activity-item" key={item.id}>
+                  <small className="muted">{formatActivityTime(item.createdAt)}</small>
+                  <div><strong>{item.action}</strong>{item.detail ? <><br /><span className="muted">{item.detail}</span></> : null}</div>
+                </div>) : <p className="muted">No activity yet.</p>}
+              </div>
+
+              <button className="btn danger" style={{ width: "100%" }} onClick={() => onDelete(request.id)}>Delete Request</button>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function CreativeBriefBuilderPrototype() {
+  const [view, setView] = useState("builder");
+  const [form, setForm] = useState(blankForm);
+  const [requests, setRequests] = useState([]);
+  const [ai, setAi] = useState(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+  const [dragId, setDragId] = useState(null);
+  const [dragOverStatus, setDragOverStatus] = useState(null);
+  const [filters, setFilters] = useState({ search: "", assignedTo: "" });
+  const [loading, setLoading] = useState(true);
+  const mounted = useRef(false);
+  const prevRequests = useRef([]);
+  const isRealtime = useRef(false);
+
+  // Load from Supabase on mount + subscribe to real-time changes
+  useEffect(() => {
+    loadFromSupabase().then((loaded) => {
+      setRequests(loaded);
+      prevRequests.current = loaded;
+      mounted.current = true;
+      setLoading(false);
+    });
+
+    const channel = supabase
+      .channel("requests-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "requests" }, (payload) => {
+        isRealtime.current = true;
+        if (payload.eventType === "DELETE") {
+          setRequests((prev) => prev.filter((r) => r.id !== payload.old.id));
+        } else {
+          const updated = normalizeRequest(payload.new.data);
+          setRequests((prev) => {
+            const exists = prev.find((r) => r.id === updated.id);
+            return exists
+              ? prev.map((r) => (r.id === updated.id ? updated : r))
+              : [updated, ...prev];
+          });
+        }
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, []);
+
+  // Sync local changes to Supabase (skips real-time-triggered updates)
+  useEffect(() => {
+    if (!mounted.current) return;
+    if (isRealtime.current) {
+      isRealtime.current = false;
+      prevRequests.current = requests;
+      return;
+    }
+    const prev = prevRequests.current;
+    requests.forEach((r) => {
+      const old = prev.find((p) => p.id === r.id);
+      if (!old || JSON.stringify(old) !== JSON.stringify(r)) {
+        supabase.from("requests").upsert({ id: r.id, data: r });
+      }
+    });
+    prev.forEach((r) => {
+      if (!requests.find((c) => c.id === r.id)) {
+        supabase.from("requests").delete().eq("id", r.id);
+      }
+    });
+    prevRequests.current = requests;
+  }, [requests]);
+
+  const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const output = useMemo(() => generateOutput(form), [form]);
+  const selectedRequest = useMemo(() => requests.find((r) => r.id === selectedId) || null, [requests, selectedId]);
+
+  const resetBuilder = () => {
+    setForm(blankForm);
+    setAi(null);
+    setReviewOpen(false);
+    setSelectedId(null);
+    setView("builder");
+  };
+
+  const submitRequest = () => {
+    const nextAi = ai || output;
+    const record = normalizeRequest({
+      id: uid(),
+      createdAt: new Date().toISOString(),
+      status: "To Do",
+      form: { ...form },
+      ai: nextAi,
+      comments: [],
+      unreadComments: 0,
+      activity: [makeActivity("Request submitted", `Created by ${form.requestor || "requestor"}`)],
+    });
+    setRequests((prev) => [record, ...prev]);
+    setForm(blankForm);
+    setAi(null);
+    setReviewOpen(false);
+    setView("dashboard");
+  };
+
+  const openReview = () => {
+    setAi(output);
+    setReviewOpen(true);
+  };
+
+  const filteredRequests = requests.filter((r) => {
+    const q = filters.search.toLowerCase();
+    const matchesSearch = !q || `${r.form.title} ${r.form.requestor} ${r.form.brand} ${r.form.requestDetails}`.toLowerCase().includes(q);
+    const matchesAssignee = !filters.assignedTo || r.form.assignedTo === filters.assignedTo;
+    return matchesSearch && matchesAssignee;
+  });
+
+  const grouped = STATUS_COLUMNS.reduce((acc, status) => {
+    acc[status] = filteredRequests.filter((r) => normalizeStatus(r.status) === status);
+    return acc;
+  }, {});
+
+  const handleDragStart = (e, id) => {
+    setDragId(id);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id);
+  };
+
+  const dropOnStatus = (status) => {
+    const id = dragId;
+    if (!id) return;
+    const revisionNote = status === "For Revision"
+      ? (window.prompt("Add revision note for this task. Leave blank if there is no specific note yet.") || "")
+      : "";
+    setRequests((prev) => prev.map((r) => {
+      if (r.id !== id || r.status === status) return r;
+      let next = { ...r, status, activity: [makeActivity("Status changed", `${r.status} → ${status}`), ...(r.activity || [])] };
+      if (revisionNote.trim()) {
+        const revisionComment = { id: uid("COM"), type: "Revision", author: "Current User", body: revisionNote.trim(), createdAt: new Date().toISOString() };
+        next = {
+          ...next,
+          comments: [...(next.comments || []), revisionComment],
+          unreadComments: (next.unreadComments || 0) + 1,
+          activity: [makeActivity("Revision note added", revisionNote.trim()), ...(next.activity || [])],
+        };
+      }
+      return next;
+    }));
+    setDragId(null);
+    setDragOverStatus(null);
+  };
+
+  const openTask = (id) => {
+    setSelectedId(id);
+    setRequests((prev) => prev.map((r) => r.id === id ? { ...r, unreadComments: 0 } : r));
+  };
+
+  const deleteRequest = (id) => {
+    if (!window.confirm("Delete request?")) return;
+    setRequests((prev) => prev.filter((r) => r.id !== id));
+    setSelectedId(null);
+  };
+
+  const Header = () => (
+    <div className="header">
+      <div className="header-inner">
+        <div>
+          <h2 style={{ margin: 0 }}>Creative Request Builder</h2>
+          <div className="muted small">Request intake → AI organized brief → draggable task dashboard</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <button className={`btn ${view === "builder" ? "" : "secondary"}`} onClick={resetBuilder}>Create Request</button>
+          <button className={`btn ${view === "dashboard" ? "" : "secondary"}`} onClick={() => setView("dashboard")}>Dashboard</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (loading) return (
+    <div className="app" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+      <style>{css}</style>
+      <div style={{ textAlign: "center", color: "#71717a" }}>
+        <div style={{ fontSize: 28, marginBottom: 10 }}>⟳</div>
+        <div>Loading requests…</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="app">
+      <style>{css}</style>
+      <Header />
+
+      {view === "builder" && <div className="container">
+        <div className="card"><div className="card-body"><h1 style={{ marginTop: 0 }}>Create a request</h1><p className="muted">Request details come first. Add deliverables after, then use per-deliverable notes only when a material needs special handling.</p></div></div>
+        <div className="grid">
+          <main>
+            <Section n="1" title="Project basics">
+              <div className="row">
+                <Field label="Project title"><input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="Example: Monitor Topper for KonKon" /></Field>
+                <Field label="Brand / account"><select value={form.brand} onChange={(e) => update("brand", e.target.value)}><option>LakiWin</option><option>VikingFunLand</option><option>RAC PH</option><option>Other Brand</option></select></Field>
+              </div>
+              <Field label="Static or motion"><div className="choice-grid">{["Static", "Motion"].map((m) => <button key={m} type="button" className={`choice ${form.outputMode === m ? "active" : ""}`} onClick={() => update("outputMode", m)}>{m}</button>)}</div></Field>
+            </Section>
+
+            <Section n="2" title="Request Details / Full Brief">
+              <p className="muted" style={{ marginTop: 0 }}>Paste all promo details, copy, mechanics, mandatories, references, and notes here.</p>
+              <textarea value={form.requestDetails} onChange={(e) => update("requestDetails", e.target.value)} placeholder={`Example:\nput KonKon's QR code.\nfeature SuperAce by JILI.\nput PAGCOR mandatories.\nshowcase LakiWin logo.`} style={{ minHeight: 155 }} />
+            </Section>
+
+            <Section n="3" title="What size/s do you need?">
+              <DeliverableComposer form={form} setForm={setForm} />
+            </Section>
+
+            <Section n="4" title="Visual references / moodboard" optional>
+              <p className="muted" style={{ marginTop: 0 }}>Optional. Use this when requestors have screenshots, pegs, or downloaded references.</p>
+              <ReferenceUploader form={form} setForm={setForm} />
+            </Section>
+
+            <Section n="5" title="Deadline and requestor">
+              <div className="row">
+                <Field label="Date needed"><input type="date" value={form.deadline} onChange={(e) => update("deadline", e.target.value)} /></Field>
+                <Field label="Requested by"><select value={form.requestor} onChange={(e) => update("requestor", e.target.value)}><option value="">Select requestor</option>{REQUESTORS.map((person) => <option key={person}>{person}</option>)}</select></Field>
+              </div>
+              <Field label="Assign to"><select value={form.assignedTo} onChange={(e) => update("assignedTo", e.target.value)}>{DESIGNERS.map((designer) => <option key={designer}>{designer}</option>)}</select></Field>
+            </Section>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: 30 }}><button className="btn purple" onClick={openReview}>Review Request</button></div>
+          </main>
+          <aside><RequestPreview form={form} ai={ai} onReview={openReview} /></aside>
+        </div>
+      </div>}
+
+      {view === "dashboard" && <div className="container">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+          <div><h1 style={{ margin: 0 }}>Dashboard</h1><p className="muted">Drag cards between columns. New submitted requests land in To Do.</p></div>
+        </div>
+        <div className="dashboard-toolbar">
+          <input placeholder="Search title, requestor, brand, details..." value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
+          <select value={filters.assignedTo} onChange={(e) => setFilters({ ...filters, assignedTo: e.target.value })}><option value="">All assignees</option>{DESIGNERS.map((d) => <option key={d}>{d}</option>)}</select>
+          <button className="btn secondary" onClick={() => setFilters({ search: "", assignedTo: "" })}>Clear filters</button>
+        </div>
+
+        <div className="board">
+          {STATUS_COLUMNS.map((status) => (
+            <section
+              key={status}
+              className={`board-column ${dragOverStatus === status ? "drag-over" : ""}`}
+              onDragOver={(e) => { e.preventDefault(); setDragOverStatus(status); }}
+              onDragLeave={() => setDragOverStatus(null)}
+              onDrop={(e) => { e.preventDefault(); dropOnStatus(status); }}
+            >
+              <div className="column-header">
+                <div className="column-title">{status} <span className="count">{grouped[status]?.length || 0}</span></div>
+                {status === "To Do" && <button className="btn ghost" title="Create request" onClick={resetBuilder}>＋</button>}
+              </div>
+              {grouped[status]?.map((request) => <TaskCard key={request.id} request={request} onOpen={openTask} onDragStart={handleDragStart} />)}
+            </section>
+          ))}
+        </div>
+      </div>}
+
+      {reviewOpen && <RequestReviewModal form={form} ai={ai || output} onCancel={() => setReviewOpen(false)} onSubmit={submitRequest} />}
+      {selectedRequest && <TaskModal request={selectedRequest} setRequests={setRequests} onClose={() => setSelectedId(null)} onDelete={deleteRequest} />}
+    </div>
+  );
 }
