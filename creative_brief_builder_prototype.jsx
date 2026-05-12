@@ -830,6 +830,10 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
   const [commentText, setCommentText] = useState("");
   const [commentType, setCommentType] = useState("General");
   const [assetType, setAssetType] = useState("Key Visual");
+  const [delExpandedNotes, setDelExpandedNotes] = useState({});
+  const [addingDeliverable, setAddingDeliverable] = useState(false);
+  const [newDelInput, setNewDelInput] = useState("");
+  const [newDelSuggestions, setNewDelSuggestions] = useState([]);
   if (!request) return null;
   const ai = request.ai || generateOutput(request.form);
   const meta = deadlineMeta(request.form.deadline);
@@ -883,15 +887,58 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
     }));
   };
 
-  const updateDeliverableStatus = (id, status) => {
+  const updateDeliverableStatus = (id, newStatus) => {
     const current = deliverables.find((d) => d.id === id);
-    if (!current || current.status === status) return;
-    updateDeliverable(id, { status }, "Deliverable status changed");
+    if (!current || current.status === newStatus) return;
+    setRequests((prev) => prev.map((r) => {
+      if (r.id !== request.id) return r;
+      const updatedDeliverables = r.form.deliverables.map((d) =>
+        d.id === id ? { ...d, status: newStatus } : d
+      );
+      const updated = { ...r, form: { ...r.form, deliverables: updatedDeliverables } };
+      return appendActivityToRequest(updated, `${current.label} changed from ${current.status} → ${newStatus}`);
+    }));
   };
 
-  const toggleDeliverableDone = (id, checked) => {
-    const status = checked ? "Done" : "In Progress";
-    updateDeliverableStatus(id, status);
+  const removeModalDeliverable = (id) => {
+    const del = deliverables.find((d) => d.id === id);
+    if (!del) return;
+    setRequests((prev) => prev.map((r) => {
+      if (r.id !== request.id) return r;
+      const updatedDeliverables = r.form.deliverables.filter((d) => d.id !== id);
+      const updated = { ...r, form: { ...r.form, deliverables: updatedDeliverables } };
+      return appendActivityToRequest(updated, `Removed ${del.label}${del.width && del.unit !== "N/A" ? ` — ${del.width}×${del.height} ${del.unit}` : ""}`);
+    }));
+  };
+
+  const handleNewDelInput = (e) => {
+    const val = e.target.value;
+    setNewDelInput(val);
+    if (!val.trim()) { setNewDelSuggestions([]); return; }
+    const lower = val.toLowerCase();
+    const matched = MATERIAL_PRESETS.filter(p =>
+      p.label.toLowerCase().includes(lower) ||
+      `${p.width}x${p.height}`.includes(lower)
+    ).slice(0, 5);
+    setNewDelSuggestions(matched);
+  };
+
+  const addNewDeliverable = (preset) => {
+    if (!preset && !newDelInput.trim()) return;
+    const newDel = normalizeDeliverable(
+      preset
+        ? { ...preset, source: "preset" }
+        : { label: newDelInput.trim(), source: "custom" }
+    );
+    setRequests((prev) => prev.map((r) => {
+      if (r.id !== request.id) return r;
+      const updatedDeliverables = [...r.form.deliverables, newDel];
+      const updated = { ...r, form: { ...r.form, deliverables: updatedDeliverables } };
+      return appendActivityToRequest(updated, `Added ${newDel.label}${newDel.width && newDel.unit !== "N/A" ? ` — ${newDel.width}×${newDel.height} ${newDel.unit}` : ""}`);
+    }));
+    setNewDelInput("");
+    setNewDelSuggestions([]);
+    setAddingDeliverable(false);
   };
 
   const addComment = () => {
@@ -927,26 +974,88 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
               </div>
 
               <div className="info-box">
-                <div className="field-label">Deliverables / Output Tracker</div>
-                <p className="muted small" style={{ marginTop: 0 }}>{doneCount}/{deliverables.length || 0} deliverable{deliverables.length === 1 ? "" : "s"} done. Tick a deliverable when that specific size/material is finished.</p>
-                <div className="table-ish">
-                  {deliverables.length ? deliverables.map((d) => (
-                    <div className="deliverable-detail" key={d.id}>
-                      <div className="deliverable-row-main">
-                        <input className="deliverable-check" type="checkbox" checked={d.status === "Done"} onChange={(e) => toggleDeliverableDone(d.id, e.target.checked)} />
-                        <div>
-                          <strong>{d.label}</strong><br />
-                          <span className="muted small">{formatSize(d)}{d.notes ? ` • ${d.notes}` : ""}</span>
-                        </div>
-                        <select value={d.status || "To Do"} onChange={(e) => updateDeliverableStatus(d.id, e.target.value)}>{DELIVERABLE_STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <div className="field-label" style={{ marginBottom: 0 }}>Deliverables</div>
+                  <button className="del-detect-btn" type="button" onClick={() => setAddingDeliverable(v => !v)}>
+                    + Add deliverable
+                  </button>
+                </div>
+
+                {addingDeliverable && (
+                  <div style={{ position: "relative", marginBottom: 8 }}>
+                    <div className="del-input-row">
+                      <input
+                        autoFocus
+                        value={newDelInput}
+                        onChange={handleNewDelInput}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") addNewDeliverable(null);
+                          if (e.key === "Escape") setAddingDeliverable(false);
+                        }}
+                        placeholder="Type name or size..."
+                      />
+                      <button className="del-add-btn" type="button" onClick={() => addNewDeliverable(null)}>Add</button>
+                    </div>
+                    {newDelSuggestions.length > 0 && (
+                      <div className="del-suggestions">
+                        {newDelSuggestions.map(p => (
+                          <div key={p.id} className="del-suggestion-item" onClick={() => addNewDeliverable(p)}>
+                            <span>{p.label}</span>
+                            <span className="del-suggestion-dim">{p.width}×{p.height} {p.unit}</span>
+                          </div>
+                        ))}
                       </div>
-                      <div className="output-fields">
-                        <input value={d.outputUrl || ""} onChange={(e) => updateDeliverable(d.id, { outputUrl: e.target.value })} onBlur={(e) => { if (e.target.value.trim()) updateDeliverable(d.id, { outputUrl: e.target.value }, "Output link added"); }} placeholder="Paste output/final file link for this deliverable..." />
-                        <textarea style={{ minHeight: 56 }} value={d.outputNotes || ""} onChange={(e) => updateDeliverable(d.id, { outputNotes: e.target.value })} placeholder="Output notes, file version, or handoff notes..." />
+                    )}
+                  </div>
+                )}
+
+                <div className="del-list">
+                  {deliverables.map(d => (
+                    <div key={d.id}>
+                      <div className="del-row">
+                        <span className="del-row-label">{d.label}</span>
+                        {d.width && d.unit !== "N/A" && (
+                          <span className="del-row-dim">{d.width}×{d.height} {d.unit}</span>
+                        )}
+                        <select
+                          className={`del-status-select ${statusPillColor(d.status)}`}
+                          value={d.status || "To Do"}
+                          onChange={e => updateDeliverableStatus(d.id, e.target.value)}
+                        >
+                          {["To Do", "In Progress", "For Review", "For Revision", "Done"].map(s => (
+                            <option key={s}>{s}</option>
+                          ))}
+                        </select>
+                        <button className="del-menu-btn" type="button" onClick={() => {
+                          const action = window.prompt("n = toggle notes  |  r = remove");
+                          if (action === "n") setDelExpandedNotes(prev => ({ ...prev, [d.id]: !prev[d.id] }));
+                          if (action === "r") removeModalDeliverable(d.id);
+                        }}>···</button>
+                      </div>
+                      {delExpandedNotes[d.id] && (
+                        <textarea
+                          className="del-notes-area"
+                          placeholder="Specific notes for this size only..."
+                          value={d.notes || ""}
+                          onChange={e => updateDeliverable(d.id, { notes: e.target.value })}
+                        />
+                      )}
+                      <div style={{ marginTop: 4 }}>
+                        <input
+                          style={{ fontSize: 12, padding: "4px 8px", borderRadius: 5, border: "1px solid #e5e7eb" }}
+                          value={d.outputUrl || ""}
+                          onChange={e => updateDeliverable(d.id, { outputUrl: e.target.value })}
+                          onBlur={e => { if (e.target.value.trim()) updateDeliverable(d.id, { outputUrl: e.target.value }, "Output link added"); }}
+                          placeholder="Paste output file link..."
+                        />
                       </div>
                     </div>
-                  )) : <span className="muted">No deliverables added.</span>}
+                  ))}
                 </div>
+
+                {deliverables.length === 0 && (
+                  <p style={{ color: "#9ca3af", fontSize: 13, margin: "4px 0" }}>No deliverables yet.</p>
+                )}
               </div>
 
               <div className="info-box">
