@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { MATERIAL_PRESETS, normalizeDeliverable, detectDeliverablesFromText, statusPillColor } from './src/deliverables.js'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -12,18 +13,6 @@ const DELIVERABLE_STATUSES = ["To Do", "In Progress", "For Review", "For Revisio
 const COMMENT_TYPES = ["General", "Clarification", "Revision", "Approval"];
 const ASSET_PROMPT_TYPES = ["Key Visual", "Background", "Character / Mascot", "3D Object", "Scene Reference"];
 
-const MATERIAL_PRESETS = [
-  { id: "a4", label: "A4 Poster", width: "210", height: "297", unit: "mm", category: "Print" },
-  { id: "letter", label: "Letter Flyer", width: "8.5", height: "11", unit: "in", category: "Print" },
-  { id: "pullup", label: "Pull-up Banner", width: "3", height: "5", unit: "ft", category: "Print" },
-  { id: "socmed-square", label: "Social Media Square", width: "1080", height: "1080", unit: "px", category: "Social Media" },
-  { id: "socmed-portrait", label: "Social Media Portrait", width: "1080", height: "1350", unit: "px", category: "Social Media" },
-  { id: "story", label: "Story / Reels Cover", width: "1080", height: "1920", unit: "px", category: "Social Media" },
-  { id: "web", label: "Web Banner", width: "1440", height: "560", unit: "px", category: "Digital" },
-  { id: "mobile", label: "Mobile Banner", width: "390", height: "420", unit: "px", category: "Digital" },
-  { id: "tablet", label: "Tablet Banner", width: "1024", height: "480", unit: "px", category: "Digital" },
-  { id: "logo", label: "Logo / Brand Mark", width: "N/A", height: "N/A", unit: "N/A", category: "Branding" },
-];
 
 const REQUESTORS = [
   "Marketing Manager",
@@ -49,7 +38,6 @@ const blankForm = {
   referenceNotes: "",
 };
 
-const blankDraft = { name: "", width: "", height: "", unit: "px" };
 
 const css = `
   * { box-sizing: border-box; }
@@ -233,22 +221,6 @@ function makeActivity(action, detail = "", actor = "Current User") {
   return { id: uid("ACT"), action, detail, actor, createdAt: new Date().toISOString() };
 }
 
-function normalizeDeliverable(item) {
-  return {
-    id: item.id || uid("DEL"),
-    presetId: item.presetId || null,
-    label: item.label || "Custom Size",
-    width: item.width || "",
-    height: item.height || "",
-    unit: item.unit || "",
-    source: item.source || "custom",
-    status: item.status || "To Do",
-    options: item.options || { qr: false, fullMechanics: false, minimalCopy: false, ctaPriority: false },
-    notes: item.notes || "",
-    outputUrl: item.outputUrl || "",
-    outputNotes: item.outputNotes || "",
-  };
-}
 
 function daysUntil(dateStr) {
   if (!dateStr) return null;
@@ -533,80 +505,193 @@ function RequestPreview({ form, ai, onReview }) {
 }
 
 function DeliverableComposer({ form, setForm }) {
-  const [draft, setDraft] = useState(blankDraft);
-  const suggestions = useMemo(() => getSuggestions(draft), [draft]);
-  const matched = matchPresetBySize(draft.width, draft.height, draft.unit);
+  const [input, setInput] = React.useState("")
+  const [suggestions, setSuggestions] = React.useState([])
+  const [detectedItems, setDetectedItems] = React.useState(null)
+  const [selectedDetected, setSelectedDetected] = React.useState([])
+  const [expandedNotes, setExpandedNotes] = React.useState({})
+  const [expandedDims, setExpandedDims] = React.useState({})
+  const inputRef = React.useRef(null)
 
-  const setDraftValue = (key, value) => setDraft((prev) => ({ ...prev, [key]: value }));
+  const briefText = form.requestDetails || ""
+  const hasBriefText = briefText.trim().length > 0
+  const deliverables = form.deliverables || []
 
-  const choosePreset = (preset) => {
-    setDraft({ name: preset.label, width: preset.width, height: preset.height, unit: preset.unit });
-  };
+  function handleInput(e) {
+    const val = e.target.value
+    setInput(val)
+    if (!val.trim()) { setSuggestions([]); return }
+    const lower = val.toLowerCase()
+    const matched = MATERIAL_PRESETS.filter(p =>
+      p.label.toLowerCase().includes(lower) ||
+      `${p.width}x${p.height}`.includes(lower) ||
+      `${p.width}×${p.height}`.includes(lower)
+    ).slice(0, 6)
+    setSuggestions(matched)
+  }
 
-  const addDeliverable = () => {
-    const hasNA = draft.unit === "N/A" || draft.width === "N/A" || draft.height === "N/A";
-    const hasSize = hasNA || (String(draft.width).trim() && String(draft.height).trim() && String(draft.unit).trim());
-    if (!hasSize) return;
-    const presetByName = MATERIAL_PRESETS.find((p) => p.label.toLowerCase() === draft.name.trim().toLowerCase());
-    const label = draft.name.trim() || "Custom Size";
-    const next = normalizeDeliverable({
-      id: uid("DEL"),
-      presetId: presetByName?.id || matched?.id || null,
-      label,
-      width: draft.width || "",
-      height: draft.height || "",
-      unit: draft.unit || "",
-      source: presetByName ? "preset" : "custom",
-      status: "To Do",
-      options: { qr: false, fullMechanics: false, minimalCopy: false, ctaPriority: false },
-      notes: "",
-    });
-    setForm((prev) => ({ ...prev, deliverables: [...prev.deliverables, next] }));
-    setDraft(blankDraft);
-  };
+  function addFromPreset(preset) {
+    const newDel = normalizeDeliverable({ ...preset, source: "preset" })
+    setForm(prev => ({ ...prev, deliverables: [...prev.deliverables, newDel] }))
+    setInput("")
+    setSuggestions([])
+    inputRef.current?.focus()
+  }
 
-  const removeDeliverable = (id) => setForm((prev) => ({ ...prev, deliverables: prev.deliverables.filter((d) => d.id !== id) }));
-  const updateDeliverable = (id, patch) => setForm((prev) => ({ ...prev, deliverables: prev.deliverables.map((d) => d.id === id ? { ...d, ...patch } : d) }));
-  const updateOption = (id, option, value) => setForm((prev) => ({ ...prev, deliverables: prev.deliverables.map((d) => d.id === id ? { ...d, options: { ...(d.options || {}), [option]: value } } : d) }));
+  function addCustom() {
+    if (!input.trim()) return
+    const dimMatch = input.match(/^(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*(px|mm|cm|in|ft)?$/i)
+    let newDel
+    if (dimMatch) {
+      const [, w, h, unit] = dimMatch
+      newDel = normalizeDeliverable({ label: `${w}×${h} ${unit || "px"}`, width: w, height: h, unit: unit || "px", source: "custom" })
+    } else {
+      newDel = normalizeDeliverable({ label: input.trim(), source: "custom" })
+    }
+    setForm(prev => ({ ...prev, deliverables: [...prev.deliverables, newDel] }))
+    setInput("")
+    setSuggestions([])
+    inputRef.current?.focus()
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === "Enter") { e.preventDefault(); addCustom() }
+    if (e.key === "Escape") setSuggestions([])
+  }
+
+  function removeDeliverable(id) {
+    setForm(prev => ({ ...prev, deliverables: prev.deliverables.filter(d => d.id !== id) }))
+  }
+
+  function updateDeliverable(id, patch) {
+    setForm(prev => ({ ...prev, deliverables: prev.deliverables.map(d => d.id === id ? { ...d, ...patch } : d) }))
+  }
+
+  function toggleNotes(id) {
+    setExpandedNotes(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  function toggleDims(id) {
+    setExpandedDims(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  function handleDetect() {
+    const found = detectDeliverablesFromText(briefText)
+    const existingLabels = new Set(deliverables.map(d => d.label.toLowerCase()))
+    const novel = found.filter(f => !existingLabels.has(f.label.toLowerCase()))
+    if (!novel.length) { alert("No new deliverables detected in the brief."); return }
+    setDetectedItems(novel)
+    setSelectedDetected(novel.map(d => d.id))
+  }
+
+  function confirmDetected() {
+    const toAdd = detectedItems.filter(d => selectedDetected.includes(d.id))
+    setForm(prev => ({ ...prev, deliverables: [...prev.deliverables, ...toAdd] }))
+    setDetectedItems(null)
+    setSelectedDetected([])
+  }
+
+  const STATUSES = ["To Do", "In Progress", "For Review", "For Revision", "Done"]
 
   return (
-    <>
-      <div className="composer">
-        <Field label="Search or name deliverable"><input value={draft.name} onChange={(e) => setDraftValue("name", e.target.value)} placeholder="Type Social, A4, Pull-up, Logo, or custom name..." /></Field>
-        <div className="three-row">
-          <Field label="Width"><input value={draft.width} onChange={(e) => setDraftValue("width", e.target.value)} placeholder="2.75" /></Field>
-          <Field label="Height"><input value={draft.height} onChange={(e) => setDraftValue("height", e.target.value)} placeholder="6.5" /></Field>
-          <Field label="Unit"><select value={draft.unit} onChange={(e) => setDraftValue("unit", e.target.value)}><option>px</option><option>in</option><option>ft</option><option>mm</option><option>cm</option><option>N/A</option></select></Field>
+    <div className="del-composer">
+      {deliverables.length > 0 && (
+        <div className="del-list">
+          {deliverables.map(d => (
+            <div key={d.id}>
+              <div className="del-row">
+                <span className="del-row-label">{d.label}</span>
+                {d.width && d.height && d.unit !== "N/A" && (
+                  <span className="del-row-dim">{d.width}×{d.height} {d.unit}</span>
+                )}
+                <select
+                  className={`del-status-select ${statusPillColor(d.status)}`}
+                  value={d.status || "To Do"}
+                  onChange={e => updateDeliverable(d.id, { status: e.target.value })}
+                >
+                  {STATUSES.map(s => <option key={s}>{s}</option>)}
+                </select>
+                <button className="del-menu-btn" type="button" onClick={() => {
+                  const action = window.prompt("a = edit dims  |  n = notes  |  r = remove")
+                  if (action === "a") toggleDims(d.id)
+                  if (action === "n") toggleNotes(d.id)
+                  if (action === "r") removeDeliverable(d.id)
+                }}>···</button>
+              </div>
+              {expandedDims[d.id] && (
+                <div className="del-inline-dims">
+                  <input placeholder="W" value={d.width} onChange={e => updateDeliverable(d.id, { width: e.target.value })} />
+                  <span>×</span>
+                  <input placeholder="H" value={d.height} onChange={e => updateDeliverable(d.id, { height: e.target.value })} />
+                  <select value={d.unit || "px"} onChange={e => updateDeliverable(d.id, { unit: e.target.value })}>
+                    {["px","mm","cm","in","ft","N/A"].map(u => <option key={u}>{u}</option>)}
+                  </select>
+                </div>
+              )}
+              {expandedNotes[d.id] && (
+                <textarea
+                  className="del-notes-area"
+                  placeholder="Specific notes for this size only..."
+                  value={d.notes || ""}
+                  onChange={e => updateDeliverable(d.id, { notes: e.target.value })}
+                />
+              )}
+            </div>
+          ))}
         </div>
-        {suggestions.length > 0 && <div className="suggestions">
-          {suggestions.map((s) => <button key={s.id} type="button" className="suggestion" onClick={() => choosePreset(s)}>
-            <span><strong>{s.label}</strong><br /><small className="muted">{s.category}</small></span>
-            <strong>{formatSize(s)}</strong>
-          </button>)}
-        </div>}
-        {matched && !draft.name.trim() && <div className="warning" style={{ marginTop: 10 }}>Size matches preset: <strong>{matched.label}</strong>. Click the suggestion to use that name, or add as Custom Size.</div>}
-        <button className="btn" type="button" onClick={addDeliverable} disabled={!(draft.unit === "N/A" || (draft.width && draft.height && draft.unit))}>+ Add Deliverable</button>
+      )}
+
+      <div style={{ position: "relative" }}>
+        <div className="del-input-row">
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={handleInput}
+            onKeyDown={handleKeyDown}
+            placeholder="Type name or size, e.g. A4, 1080×1350..."
+          />
+          <button className="del-add-btn" type="button" onClick={addCustom}>+ Add</button>
+          {hasBriefText && (
+            <button className="del-detect-btn" type="button" onClick={handleDetect}>Detect from brief</button>
+          )}
+        </div>
+        {suggestions.length > 0 && (
+          <div className="del-suggestions">
+            {suggestions.map(p => (
+              <div key={p.id} className="del-suggestion-item" onClick={() => addFromPreset(p)}>
+                <span>{p.label}</span>
+                <span className="del-suggestion-dim">{p.width}×{p.height} {p.unit}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="deliverable-list">
-        {form.deliverables.map((d) => (
-          <div className="deliverable-item" key={d.id}>
-            <div className="deliverable-head">
-              <div><strong>{d.label} — {formatSize(d)}</strong><br /><small className="muted">Optional settings for this specific material</small></div>
-              <button className="btn ghost" type="button" onClick={() => removeDeliverable(d.id)}>Remove</button>
+      {detectedItems && (
+        <div className="del-confirm-strip">
+          <h5>Detected deliverables:</h5>
+          {detectedItems.map(d => (
+            <div key={d.id} className="del-confirm-item">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={selectedDetected.includes(d.id)}
+                  onChange={e => setSelectedDetected(prev =>
+                    e.target.checked ? [...prev, d.id] : prev.filter(id => id !== d.id)
+                  )}
+                />
+                {d.label}{d.width && d.unit !== "N/A" ? ` — ${d.width}×${d.height} ${d.unit}` : ""}
+              </label>
             </div>
-            <div className="deliverable-options">
-              <label className="check-row"><input type="checkbox" checked={!!d.options?.qr} onChange={(e) => updateOption(d.id, "qr", e.target.checked)} /> Needs QR code</label>
-              <label className="check-row"><input type="checkbox" checked={!!d.options?.fullMechanics} onChange={(e) => updateOption(d.id, "fullMechanics", e.target.checked)} /> Full mechanics</label>
-              <label className="check-row"><input type="checkbox" checked={!!d.options?.minimalCopy} onChange={(e) => updateOption(d.id, "minimalCopy", e.target.checked)} /> Minimal copy only</label>
-              <label className="check-row"><input type="checkbox" checked={!!d.options?.ctaPriority} onChange={(e) => updateOption(d.id, "ctaPriority", e.target.checked)} /> CTA priority</label>
-            </div>
-            <textarea style={{ minHeight: 58, marginTop: 10 }} value={d.notes || ""} onChange={(e) => updateDeliverable(d.id, { notes: e.target.value })} placeholder="Specific notes for this deliverable only. Example: QR only for A4; social version should be short." />
+          ))}
+          <div className="del-confirm-actions">
+            <button className="del-confirm-add" type="button" onClick={confirmDetected}>Add Selected</button>
+            <button className="del-confirm-dismiss" type="button" onClick={() => setDetectedItems(null)}>Dismiss</button>
           </div>
-        ))}
-      </div>
-    </>
-  );
+        </div>
+      )}
+    </div>
+  )
 }
 
 function ReferenceUploader({ form, setForm }) {
