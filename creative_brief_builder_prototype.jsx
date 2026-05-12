@@ -1262,7 +1262,7 @@ export default function CreativeBriefBuilderPrototype() {
     setRequests((prev) => {
       const next = prev.map((r) => {
         if (r.id !== id || r.status === status) return r;
-        let updated = { ...r, status, activity: [makeActivity("Status changed", `${r.status} → ${status}`), ...(r.activity || [])] };
+        let updated = { ...r, status, activity: [makeActivity(`Request moved from ${r.status} → ${status}`), ...(r.activity || [])] };
         if (revisionNote.trim()) {
           const revisionComment = { id: uid("COM"), type: "Revision", author: "Current User", body: revisionNote.trim(), createdAt: new Date().toISOString() };
           updated = {
