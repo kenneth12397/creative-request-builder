@@ -854,7 +854,7 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
     }
     setRequests((prev) => prev.map((r) => {
       if (r.id !== request.id) return r;
-      let next = appendActivityToRequest({ ...r, status }, "Status changed", `${r.status} → ${status}`);
+      let next = appendActivityToRequest({ ...r, status }, `Request moved from ${r.status} → ${status}`);
       if (revisionNote.trim()) {
         const revisionComment = { id: uid("COM"), type: "Revision", author: "Current User", body: revisionNote.trim(), createdAt: new Date().toISOString() };
         next = {
@@ -1221,7 +1221,7 @@ export default function CreativeBriefBuilderPrototype() {
       ai: nextAi,
       comments: [],
       unreadComments: 0,
-      activity: [makeActivity("Request submitted", `Created by ${form.requestor || "requestor"}`)],
+      activity: [makeActivity(`${form.requestor || "Current User"} submitted the request`)],
     });
     setRequests((prev) => [record, ...prev]);
     setForm(blankForm);
