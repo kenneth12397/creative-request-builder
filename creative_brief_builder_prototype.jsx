@@ -96,12 +96,6 @@ const css = `
   .suggestions { display: grid; gap: 8px; margin-top: 10px; }
   .suggestion { border: 1px solid #e4e4e7; border-radius: 12px; background: white; padding: 10px; display: flex; justify-content: space-between; gap: 10px; align-items: center; cursor: pointer; text-align: left; }
   .suggestion:hover { border-color: #a78bfa; }
-  .deliverable-list { display: grid; gap: 8px; margin-top: 14px; }
-  .deliverable-item { border: 1px solid #e4e4e7; border-radius: 14px; background: white; padding: 12px; }
-  .deliverable-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .deliverable-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
-  .check-row { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #3f3f46; }
-  .check-row input { width: auto; }
   .reference-panel { border: 1px solid #e4e4e7; border-radius: 16px; padding: 14px; background: #fbfbfd; }
   .thumb-strip { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
   .thumb { width: 64px; height: 64px; border-radius: 12px; border: 1px solid #e4e4e7; object-fit: cover; background: #f4f4f5; }
@@ -143,13 +137,47 @@ const css = `
   .deliverable-detail { border: 1px solid #e4e4e7; border-radius: 12px; padding: 10px; background: white; }
   .comment { border-bottom: 1px solid #f1f1f1; padding: 10px 0; }
   .comment-type { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 900; background: #f4f4f5; color: #52525b; margin-left: 6px; }
-  .deliverable-check { width: 22px; height: 22px; accent-color: #18181b; }
-  .deliverable-row-main { display: grid; grid-template-columns: 30px minmax(0, 1fr) 150px; gap: 10px; align-items: center; }
-  .output-fields { display: grid; gap: 8px; margin-top: 10px; padding-left: 40px; }
   .asset-type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 10px 0; }
   .asset-type { border: 1px solid #d4d4d8; border-radius: 12px; padding: 9px 10px; background: white; cursor: pointer; font-weight: 850; font-size: 13px; }
   .asset-type.active { background: #18181b; color: white; border-color: #18181b; }
   .activity-item { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-bottom: 1px solid #f1f1f1; font-size: 13px; }
+  .del-composer { display: flex; flex-direction: column; gap: 6px; }
+  .del-input-row { display: flex; gap: 6px; align-items: center; }
+  .del-input-row input { flex: 1; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; width: auto; }
+  .del-input-row input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,.15); }
+  .del-add-btn { padding: 7px 14px; background: #6366f1; color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .del-add-btn:hover { background: #4f46e5; }
+  .del-suggestions { position: absolute; z-index: 50; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.1); width: 100%; max-height: 180px; overflow-y: auto; }
+  .del-suggestion-item { padding: 8px 12px; font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .del-suggestion-item:hover { background: #f3f4f6; }
+  .del-suggestion-dim { color: #9ca3af; font-size: 12px; }
+  .del-list { display: flex; flex-direction: column; gap: 0; }
+  .del-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+  .del-row:last-child { border-bottom: none; }
+  .del-row-label { flex: 1; font-weight: 500; }
+  .del-row-dim { color: #9ca3af; font-size: 12px; white-space: nowrap; }
+  .del-status-select { padding: 3px 6px; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 12px; cursor: pointer; background: #fff; width: auto; }
+  .del-status-select.blue { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+  .del-status-select.yellow { background: #fefce8; border-color: #fde68a; color: #92400e; }
+  .del-status-select.red { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+  .del-status-select.green { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+  .del-menu-btn { background: none; border: none; cursor: pointer; padding: 2px 6px; color: #9ca3af; font-size: 16px; border-radius: 4px; width: auto; }
+  .del-menu-btn:hover { background: #f3f4f6; color: #374151; }
+  .del-notes-area { width: 100%; margin-top: 4px; padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 12px; resize: vertical; min-height: 52px; box-sizing: border-box; }
+  .del-notes-area:focus { outline: none; border-color: #6366f1; }
+  .del-inline-dims { display: flex; gap: 4px; align-items: center; margin-top: 4px; }
+  .del-inline-dims input { width: 64px; padding: 4px 6px; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 12px; }
+  .del-inline-dims select { padding: 4px 6px; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 12px; width: auto; }
+  .del-detect-btn { font-size: 12px; padding: 3px 8px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 5px; cursor: pointer; color: #374151; }
+  .del-detect-btn:hover { background: #e5e7eb; }
+  .del-confirm-strip { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 12px; margin-top: 8px; }
+  .del-confirm-strip h5 { margin: 0 0 8px; font-size: 12px; color: #15803d; font-weight: 600; }
+  .del-confirm-item { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 13px; }
+  .del-confirm-item label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: normal; text-transform: none; letter-spacing: normal; color: #18181b; margin-bottom: 0; }
+  .del-confirm-item input[type=checkbox] { width: auto; }
+  .del-confirm-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .del-confirm-add { padding: 5px 12px; background: #16a34a; color: #fff; border: none; border-radius: 5px; font-size: 12px; cursor: pointer; }
+  .del-confirm-dismiss { padding: 5px 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 12px; cursor: pointer; }
   @media (max-width: 1000px) { .grid, .detail-grid, .dashboard-toolbar { grid-template-columns: 1fr; } .sticky { position: static; } .board { grid-template-columns: repeat(5, 260px); } }
   @media (max-width: 620px) { .row, .three-row { grid-template-columns: 1fr; } .task-meta { grid-template-columns: 1fr auto auto; gap: 8px; } }
 `;
