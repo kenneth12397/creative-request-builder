@@ -63,6 +63,21 @@ describe('detectDeliverablesFromText', () => {
     const results = detectDeliverablesFromText('A4 poster 1080x1920')
     expect(results.every(r => r.source === 'detected')).toBe(true)
   })
+
+  it('does not assume px for small dimensions with no unit', () => {
+    const results = detectDeliverablesFromText('2x5 streamer')
+    expect(results.length).toBe(1)
+    expect(results[0].width).toBe('2')
+    expect(results[0].height).toBe('5')
+    expect(results[0].unit).toBe('')
+    expect(results[0].label).toBe('2×5')
+  })
+
+  it('captures explicit unit suffix on raw dimensions', () => {
+    const results = detectDeliverablesFromText('2x5 ft banner')
+    expect(results[0].unit).toBe('ft')
+    expect(results[0].label).toBe('2×5 ft')
+  })
 })
 
 describe('statusPillColor', () => {

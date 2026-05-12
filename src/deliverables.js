@@ -65,9 +65,9 @@ export function detectDeliverablesFromText(text) {
   const sizePattern = /(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*(px|mm|cm|in|ft)?/gi
   for (const match of text.matchAll(sizePattern)) {
     const [, w, h, unit] = match
-    const unitStr = unit || "px"
+    const unitStr = unit ? unit.toLowerCase() : ""
     const matchedPreset = MATERIAL_PRESETS.find(
-      p => p.width === w && p.height === h && p.unit === unitStr
+      p => p.width === w && p.height === h && (unitStr === "" || p.unit === unitStr)
     )
     if (matchedPreset && !seenPresets.has(matchedPreset.id)) {
       seenPresets.add(matchedPreset.id)
