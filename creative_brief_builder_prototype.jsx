@@ -47,7 +47,7 @@ const css = `
   .header-inner { max-width: 1240px; margin: 0 auto; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
   .container { max-width: 1240px; margin: 0 auto; padding: 20px; }
   .grid { display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 20px; align-items: start; }
-  .card { background: white; border: 1px solid #e4e4e7; border-radius: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.05); margin-bottom: 16px; overflow: hidden; }
+  .card { background: white; border: 1px solid #e4e4e7; border-radius: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.05); margin-bottom: 16px; }
   .card-header { padding: 16px 18px; border-bottom: 1px solid #f1f1f1; font-weight: 800; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .card-title { display: flex; align-items: center; gap: 10px; }
   .card-body { padding: 18px; }
@@ -151,6 +151,12 @@ const css = `
   .del-status-select.green { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
   .del-menu-btn { background: none; border: none; cursor: pointer; padding: 2px 6px; color: #9ca3af; font-size: 16px; border-radius: 4px; width: auto; }
   .del-menu-btn:hover { background: #f3f4f6; color: #374151; }
+  .del-menu-wrap { position: relative; }
+  .del-dropdown { position: absolute; right: 0; top: 100%; z-index: 100; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.1); min-width: 148px; padding: 4px 0; margin-top: 2px; }
+  .del-dropdown-item { display: block; width: 100%; text-align: left; background: none; border: none; padding: 7px 12px; font-size: 13px; color: #374151; cursor: pointer; white-space: nowrap; }
+  .del-dropdown-item:hover { background: #f3f4f6; }
+  .del-dropdown-item.danger { color: #dc2626; }
+  .del-dropdown-item.danger:hover { background: #fef2f2; }
   .del-notes-area { width: 100%; margin-top: 4px; padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 12px; resize: vertical; min-height: 52px; box-sizing: border-box; }
   .del-notes-area:focus { outline: none; border-color: #6366f1; }
   .del-inline-dims { display: flex; gap: 4px; align-items: center; margin-top: 4px; }
@@ -511,7 +517,15 @@ function DeliverableComposer({ form, setForm }) {
   const [selectedDetected, setSelectedDetected] = React.useState([])
   const [expandedNotes, setExpandedNotes] = React.useState({})
   const [expandedDims, setExpandedDims] = React.useState({})
+  const [openMenu, setOpenMenu] = React.useState(null)
   const inputRef = React.useRef(null)
+
+  React.useEffect(() => {
+    if (!openMenu) return
+    function handleClickOutside() { setOpenMenu(null) }
+    document.addEventListener("click", handleClickOutside)
+    return () => document.removeEventListener("click", handleClickOutside)
+  }, [openMenu])
 
   const briefText = form.requestDetails || ""
   const hasBriefText = briefText.trim().length > 0
@@ -611,12 +625,16 @@ function DeliverableComposer({ form, setForm }) {
                 >
                   {STATUSES.map(s => <option key={s}>{s}</option>)}
                 </select>
-                <button className="del-menu-btn" type="button" onClick={() => {
-                  const action = window.prompt("a = edit dims  |  n = notes  |  r = remove")
-                  if (action === "a") toggleDims(d.id)
-                  if (action === "n") toggleNotes(d.id)
-                  if (action === "r") removeDeliverable(d.id)
-                }}>···</button>
+                <div className="del-menu-wrap">
+                  <button className="del-menu-btn" type="button" onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === d.id ? null : d.id) }}>···</button>
+                  {openMenu === d.id && (
+                    <div className="del-dropdown">
+                      <button className="del-dropdown-item" type="button" onClick={() => { toggleDims(d.id); setOpenMenu(null) }}>Edit dimensions</button>
+                      <button className="del-dropdown-item" type="button" onClick={() => { toggleNotes(d.id); setOpenMenu(null) }}>Notes</button>
+                      <button className="del-dropdown-item danger" type="button" onClick={() => { removeDeliverable(d.id); setOpenMenu(null) }}>Remove</button>
+                    </div>
+                  )}
+                </div>
               </div>
               {expandedDims[d.id] && (
                 <div className="del-inline-dims">
