@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useId } from 'react'
 import { createPortal } from 'react-dom'
+
+// useEffect, useRef, useState used by InputModal (added in Task 4)
 
 const OVERLAY_STYLE = {
   position: 'fixed',
@@ -30,21 +32,32 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
 }) {
+  const titleId = useId()
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKey = (e) => {
+      if (e.key === 'Escape') onCancel()
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [isOpen, onCancel])
+
   if (!isOpen) return null
 
   const confirmBg = confirmVariant === 'danger' ? '#ef4444' : '#6366f1'
 
   return createPortal(
-    <div style={OVERLAY_STYLE} onClick={onCancel}>
+    <div data-testid="confirm-overlay" style={OVERLAY_STYLE} onClick={onCancel}>
       <div
         style={BOX_STYLE}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="confirm-title"
+        aria-labelledby={titleId}
         onClick={e => e.stopPropagation()}
       >
         <h3
-          id="confirm-title"
+          id={titleId}
           style={{ margin: '0 0 8px', color: '#e2e8f0', fontSize: '1.1rem', fontWeight: 600 }}
         >
           {title}
@@ -52,6 +65,7 @@ export function ConfirmModal({
         <p style={{ margin: '0 0 24px', color: '#94a3b8', fontSize: '0.875rem' }}>{message}</p>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
           <button
+            autoFocus
             onClick={onCancel}
             style={{
               padding: '8px 18px',

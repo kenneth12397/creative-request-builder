@@ -49,8 +49,16 @@ describe('ConfirmModal', () => {
     render(
       <ConfirmModal isOpen title="Del?" message="Sure?" onConfirm={() => {}} onCancel={onCancel} />
     )
-    // Click the overlay (parent of dialog)
-    await userEvent.click(document.querySelector('[aria-modal]').parentElement)
+    await userEvent.click(screen.getByTestId('confirm-overlay'))
+    expect(onCancel).toHaveBeenCalledOnce()
+  })
+
+  it('calls onCancel when Escape key pressed', async () => {
+    const onCancel = vi.fn()
+    render(
+      <ConfirmModal isOpen title="Del?" message="Sure?" onConfirm={() => {}} onCancel={onCancel} />
+    )
+    await userEvent.keyboard('{Escape}')
     expect(onCancel).toHaveBeenCalledOnce()
   })
 })
