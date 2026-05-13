@@ -105,4 +105,18 @@ describe('InputModal', () => {
     rerender(<InputModal isOpen title="Note" onSubmit={() => {}} onCancel={() => {}} />)
     expect(screen.getByRole('textbox')).toHaveValue('')
   })
+
+  it('calls onCancel when Escape key pressed', async () => {
+    const onCancel = vi.fn()
+    render(<InputModal isOpen title="Note" onSubmit={() => {}} onCancel={onCancel} />)
+    await userEvent.keyboard('{Escape}')
+    expect(onCancel).toHaveBeenCalledOnce()
+  })
+
+  it('calls onCancel when overlay clicked', async () => {
+    const onCancel = vi.fn()
+    render(<InputModal isOpen title="Note" onSubmit={() => {}} onCancel={onCancel} />)
+    await userEvent.click(screen.getByTestId('input-overlay'))
+    expect(onCancel).toHaveBeenCalledOnce()
+  })
 })

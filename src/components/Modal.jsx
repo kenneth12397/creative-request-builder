@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, useId } from 'react'
+import { useEffect, useState, useId } from 'react'
 import { createPortal } from 'react-dom'
 
-// useEffect, useRef, useState used by InputModal (added in Task 4)
+// useEffect, useState used by InputModal and ConfirmModal
 
 const OVERLAY_STYLE = {
   position: 'fixed',
@@ -103,13 +103,11 @@ export function ConfirmModal({
 
 export function InputModal({ isOpen, title, placeholder = '', onSubmit, onCancel }) {
   const [value, setValue] = useState('')
-  const textareaRef = useRef(null)
   const titleId = useId()
 
   useEffect(() => {
     if (!isOpen) return
     setValue('')
-    setTimeout(() => textareaRef.current?.focus(), 0)
   }, [isOpen])
 
   // Escape key handler (same pattern as ConfirmModal)
@@ -131,6 +129,8 @@ export function InputModal({ isOpen, title, placeholder = '', onSubmit, onCancel
     setValue('')
   }
 
+  const isSubmittable = value.trim().length > 0
+
   return createPortal(
     <div data-testid="input-overlay" style={OVERLAY_STYLE} onClick={onCancel}>
       <div
@@ -147,7 +147,7 @@ export function InputModal({ isOpen, title, placeholder = '', onSubmit, onCancel
           {title}
         </h3>
         <textarea
-          ref={textareaRef}
+          autoFocus
           value={value}
           onChange={e => setValue(e.target.value)}
           placeholder={placeholder}
@@ -182,17 +182,17 @@ export function InputModal({ isOpen, title, placeholder = '', onSubmit, onCancel
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!value.trim()}
+            disabled={!isSubmittable}
             style={{
               padding: '8px 18px',
               borderRadius: '8px',
               border: 'none',
               background: '#6366f1',
               color: 'white',
-              cursor: value.trim() ? 'pointer' : 'not-allowed',
+              cursor: isSubmittable ? 'pointer' : 'not-allowed',
               fontSize: '0.875rem',
               fontWeight: 500,
-              opacity: value.trim() ? 1 : 0.5,
+              opacity: isSubmittable ? 1 : 0.5,
             }}
           >
             Submit Note
