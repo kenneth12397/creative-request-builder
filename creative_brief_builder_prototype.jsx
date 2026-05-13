@@ -1197,6 +1197,7 @@ export default function CreativeBriefBuilderPrototype() {
   const [deletingRequest, setDeletingRequest] = useState(null);
   const [revisionTarget, setRevisionTarget] = useState(null); // { requestId: string } | null
   const [editingRequest, setEditingRequest] = useState(null);
+  const [debouncedDetails, setDebouncedDetails] = useState("");
 
   const showToast = (message, variant = 'success') => {
     setToast({ message, variant })
@@ -1265,8 +1266,14 @@ export default function CreativeBriefBuilderPrototype() {
     });
   }, [requests]);
 
+  // Debounce requestDetails to avoid expensive generateOutput on every keystroke
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedDetails(form.requestDetails ?? ""), 300);
+    return () => clearTimeout(id);
+  }, [form.requestDetails]);
+
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
-  const output = useMemo(() => generateOutput(form), [form]);
+  const output = useMemo(() => generateOutput({ ...form, requestDetails: debouncedDetails }), [form, debouncedDetails]);
   const selectedRequest = useMemo(() => requests.find((r) => r.id === selectedId) || null, [requests, selectedId]);
 
   const resetBuilder = () => {
