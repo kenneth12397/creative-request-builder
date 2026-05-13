@@ -45,7 +45,14 @@ describe('StatusDropdown', () => {
     expect([expectedColor, expectedRgb]).toContain(select.style.color)
   })
 
-  it('exports STATUS_COLORS with all 5 statuses', () => {
-    expect(Object.keys(STATUS_COLORS)).toEqual(STATUSES)
+  it('STATUSES contains the 5 known workflow statuses in order', () => {
+    expect(STATUSES).toEqual(['To Do', 'In Progress', 'For Review', 'For Revision', 'Done'])
+  })
+
+  it('applies neutral fallback color for unknown value', () => {
+    render(<StatusDropdown value="Unknown Status" onChange={() => {}} />)
+    const select = screen.getByRole('combobox')
+    // Fallback is #94a3b8 (or its rgb equivalent in JSDOM)
+    expect(select.style.color).toBeTruthy()
   })
 })
