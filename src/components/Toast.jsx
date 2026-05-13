@@ -6,7 +6,7 @@ const STYLES = {
   error:   { border: '#ef4444', icon: '✕' },
 }
 
-export default function Toast({ message, variant = 'success', onDismiss }) {
+export default function Toast({ message, variant = 'success', onDismiss = () => {} }) {
   useEffect(() => {
     const id = setTimeout(onDismiss, 3000)
     return () => clearTimeout(id)

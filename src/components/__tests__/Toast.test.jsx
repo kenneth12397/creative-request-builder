@@ -5,7 +5,10 @@ import Toast from '../Toast'
 
 describe('Toast', () => {
   beforeEach(() => { vi.useFakeTimers() })
-  afterEach(() => { vi.restoreAllMocks() })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
 
   it('renders the message', () => {
     render(<Toast message="Request saved" variant="success" onDismiss={() => {}} />)
@@ -28,12 +31,17 @@ describe('Toast', () => {
 
   it('calls onDismiss when dismiss button clicked', async () => {
     vi.useRealTimers()
-    const onDismiss = vi.fn()
-    render(<Toast message="Done" variant="success" onDismiss={onDismiss} />)
-    await userEvent.click(screen.getByLabelText('Dismiss'))
-    expect(onDismiss).toHaveBeenCalledOnce()
+    try {
+      const onDismiss = vi.fn()
+      render(<Toast message="Done" variant="success" onDismiss={onDismiss} />)
+      await userEvent.click(screen.getByLabelText('Dismiss'))
+      expect(onDismiss).toHaveBeenCalledOnce()
+    } finally {
+      vi.useFakeTimers()
+    }
   })
 
+  // JSDOM converts hex inline styles to rgb(), so we assert rgb values here
   it('applies green left border for success variant', () => {
     render(<Toast message="OK" variant="success" onDismiss={() => {}} />)
     const el = screen.getByRole('status')
