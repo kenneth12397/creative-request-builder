@@ -514,7 +514,7 @@ function RequestPreview({ form, ai, onReview }) {
   );
 }
 
-function DeliverableComposer({ form, setForm }) {
+function DeliverableComposer({ form, setForm, showToast }) {
   const [input, setInput] = React.useState("")
   const [suggestions, setSuggestions] = React.useState([])
   const [detectedItems, setDetectedItems] = React.useState(null)
@@ -597,7 +597,7 @@ function DeliverableComposer({ form, setForm }) {
     const found = detectDeliverablesFromText(briefText)
     const existingLabels = new Set(deliverables.map(d => d.label.toLowerCase()))
     const novel = found.filter(f => !existingLabels.has(f.label.toLowerCase()))
-    if (!novel.length) { alert("No new deliverables detected in the brief."); return }
+    if (!novel.length) { if (showToast) showToast('No new deliverables detected in the brief.', 'error'); return }
     setDetectedItems(novel)
     setSelectedDetected(novel.map(d => d.id))
   }
@@ -886,10 +886,7 @@ function TaskModal({ request, setRequests, onClose, onDelete, showToast }) {
     if (status === request.status) return;
     setRequests((prev) => prev.map((r) => {
       if (r.id !== request.id) return r;
-      const next = appendActivityToRequest({ ...r, status }, `Request moved from ${r.status} → ${status}`);
-      supabase.from("requests").upsert({ id: next.id, data: next })
-        .then(({ error }) => { if (error) console.error("[Supabase] status sync failed:", error.message); });
-      return next;
+      return appendActivityToRequest({ ...r, status }, `Request moved from ${r.status} → ${status}`);
     }));
     if (status === "For Revision") {
       setModalRevisionTarget({ requestId: request.id });
@@ -1337,17 +1334,17 @@ export default function CreativeBriefBuilderPrototype() {
     setReviewOpen(true);
   };
 
-  const filteredRequests = requests.filter((r) => {
+  const filteredRequests = useMemo(() => requests.filter((r) => {
     const q = filters.search.toLowerCase();
     const matchesSearch = !q || `${r.form.title} ${r.form.requestor} ${r.form.brand} ${r.form.requestDetails}`.toLowerCase().includes(q);
     const matchesAssignee = !filters.assignedTo || r.form.assignedTo === filters.assignedTo;
     return matchesSearch && matchesAssignee;
-  });
+  }), [requests, filters]);
 
-  const grouped = STATUS_COLUMNS.reduce((acc, status) => {
+  const grouped = useMemo(() => STATUS_COLUMNS.reduce((acc, status) => {
     acc[status] = filteredRequests.filter((r) => normalizeStatus(r.status) === status);
     return acc;
-  }, {});
+  }, {}), [filteredRequests]);
 
   const openTask = (id) => {
     setSelectedId(id);
@@ -1407,7 +1404,7 @@ export default function CreativeBriefBuilderPrototype() {
             </Section>
 
             <Section n="3" title="What size/s do you need?">
-              <DeliverableComposer form={form} setForm={setForm} />
+              <DeliverableComposer form={form} setForm={setForm} showToast={showToast} />
             </Section>
 
             <Section n="4" title="Visual references / moodboard" optional>
