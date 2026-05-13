@@ -103,13 +103,11 @@ const css = `
   .thumb-remove { position: absolute; top: 6px; right: 6px; border: 0; width: 24px; height: 24px; border-radius: 999px; background: rgba(24,24,27,.82); color: white; cursor: pointer; }
   .board { display: grid; grid-template-columns: repeat(5, minmax(210px, 1fr)); gap: 14px; align-items: start; overflow-x: auto; padding-bottom: 12px; }
   .board-column { min-height: 520px; background: #ededf0; border: 1px solid #e4e4e7; border-radius: 18px; padding: 10px; }
-  .board-column.drag-over { outline: 3px solid rgba(139,92,246,.25); }
   .column-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 4px 10px; }
   .column-title { font-weight: 900; display: flex; align-items: center; gap: 8px; }
   .count { min-width: 24px; height: 24px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: white; border: 1px solid #d4d4d8; font-size: 12px; color: #52525b; }
-  .task-card { position: relative; background: white; border: 1px solid #dddde3; border-radius: 4px; padding: 14px 12px 12px 22px; margin-bottom: 10px; cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,.08); min-height: 112px; transition: transform .08s ease, box-shadow .12s ease; }
+  .task-card { position: relative; background: white; border: 1px solid #dddde3; border-radius: 4px; padding: 14px 12px 12px 22px; margin-bottom: 10px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.08); min-height: 112px; transition: transform .08s ease, box-shadow .12s ease; }
   .task-card:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,.10); }
-  .task-card:active { cursor: grabbing; }
   .card-actions { opacity: 0; transition: opacity 150ms; }
   .task-card:hover .card-actions { opacity: 1; }
   .deadline-strip { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; border-radius: 4px 0 0 4px; background: #a1a1aa; }
@@ -827,13 +825,12 @@ function TaskCard({ request, onOpen, onEdit, onStatusChange, statusColor }) {
   return (
     <div
       className="task-card"
-      style={{ borderLeft: `3px solid ${statusColor ?? '#a1a1aa'}` }}
       onClick={() => onOpen(request.id)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter") onOpen(request.id); }}
     >
-      <span className={`deadline-strip ${meta.strip}`} />
+      <span className="deadline-strip" style={{ background: statusColor ?? '#a1a1aa' }} />
       <div className="task-top">
         <span className="pill purple">{request.form.outputMode}</span>
         <button className="btn ghost" type="button" onClick={(e) => e.stopPropagation()}>•••</button>
