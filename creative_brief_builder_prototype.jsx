@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { MATERIAL_PRESETS, normalizeDeliverable, detectDeliverablesFromText, statusPillColor } from './src/deliverables.js'
 import Toast from './src/components/Toast'
 import { ConfirmModal, InputModal } from './src/components/Modal'
+import StatusDropdown, { STATUS_COLORS } from './src/components/StatusDropdown'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -818,7 +819,7 @@ function RequestReviewModal({ form, ai, onCancel, onSubmit, isEditing }) {
   );
 }
 
-function TaskCard({ request, onOpen, onDragStart, onEdit }) {
+function TaskCard({ request, onOpen, onEdit, onStatusChange, statusColor }) {
   const meta = deadlineMeta(request.form.deadline);
   const deliverables = request.form.deliverables || [];
   const done = deliverables.filter((d) => d.status === "Done").length;
@@ -826,8 +827,7 @@ function TaskCard({ request, onOpen, onDragStart, onEdit }) {
   return (
     <div
       className="task-card"
-      draggable
-      onDragStart={(e) => onDragStart(e, request.id)}
+      style={{ borderLeft: `3px solid ${statusColor ?? '#a1a1aa'}` }}
       onClick={() => onOpen(request.id)}
       role="button"
       tabIndex={0}
@@ -839,6 +839,12 @@ function TaskCard({ request, onOpen, onDragStart, onEdit }) {
         <button className="btn ghost" type="button" onClick={(e) => e.stopPropagation()}>•••</button>
       </div>
       <h3 className="task-title">{request.form.title || "Untitled Request"}</h3>
+      <div onClick={(e) => e.stopPropagation()} style={{ marginBottom: 8 }}>
+        <StatusDropdown
+          value={request.status}
+          onChange={onStatusChange}
+        />
+      </div>
       <div className="task-meta">
         <span>◷ {formatDateTime(request.createdAt)} → {formatDate(request.form.deadline)}</span>
         <span className="task-icon">☑ {done}/{total || 0}</span>
@@ -1188,8 +1194,6 @@ export default function CreativeBriefBuilderPrototype() {
   const [ai, setAi] = useState(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
-  const [dragId, setDragId] = useState(null);
-  const [dragOverStatus, setDragOverStatus] = useState(null);
   const [filters, setFilters] = useState({ search: "", assignedTo: "" });
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
@@ -1338,33 +1342,6 @@ export default function CreativeBriefBuilderPrototype() {
     return acc;
   }, {});
 
-  const handleDragStart = (e, id) => {
-    setDragId(id);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", id);
-  };
-
-  const dropOnStatus = (status) => {
-    const id = dragId;
-    if (!id) return;
-    // Apply status change immediately; prompt for revision note via modal if needed
-    setRequests((prev) => {
-      const next = prev.map((r) => {
-        if (r.id !== id || r.status === status) return r;
-        const updated = { ...r, status, activity: [makeActivity(`Request moved from ${r.status} → ${status}`), ...(r.activity || [])] };
-        supabase.from("requests").upsert({ id: updated.id, data: updated })
-          .then(({ error }) => { if (error) console.error("[Supabase] status sync failed:", error.message); });
-        return updated;
-      });
-      return next;
-    });
-    if (status === "For Revision") {
-      setRevisionTarget({ requestId: id });
-    }
-    setDragId(null);
-    setDragOverStatus(null);
-  };
-
   const openTask = (id) => {
     setSelectedId(id);
     setRequests((prev) => prev.map((r) => r.id === id ? { ...r, unreadComments: 0 } : r));
@@ -1380,7 +1357,7 @@ export default function CreativeBriefBuilderPrototype() {
       <div className="header-inner">
         <div>
           <h2 style={{ margin: 0 }}>Creative Request Builder</h2>
-          <div className="muted small">Request intake → AI organized brief → draggable task dashboard</div>
+          <div className="muted small">Request intake → AI organized brief → task dashboard</div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <button className={`btn ${view === "builder" ? "" : "secondary"}`} onClick={resetBuilder}>Create Request</button>
@@ -1452,7 +1429,7 @@ export default function CreativeBriefBuilderPrototype() {
 
       {view === "dashboard" && <div className="container">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-          <div><h1 style={{ margin: 0 }}>Dashboard</h1><p className="muted">Drag cards between columns. New submitted requests land in To Do.</p></div>
+          <div><h1 style={{ margin: 0 }}>Dashboard</h1><p className="muted">Use the status dropdown on each card to move requests. New submitted requests land in To Do.</p></div>
         </div>
         <div className="dashboard-toolbar">
           <input placeholder="Search title, requestor, brand, details..." value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
@@ -1464,16 +1441,33 @@ export default function CreativeBriefBuilderPrototype() {
           {STATUS_COLUMNS.map((status) => (
             <section
               key={status}
-              className={`board-column ${dragOverStatus === status ? "drag-over" : ""}`}
-              onDragOver={(e) => { e.preventDefault(); setDragOverStatus(status); }}
-              onDragLeave={() => setDragOverStatus(null)}
-              onDrop={(e) => { e.preventDefault(); dropOnStatus(status); }}
+              className="board-column"
+              style={{ borderTop: `3px solid ${STATUS_COLORS[status] ?? '#a1a1aa'}` }}
             >
               <div className="column-header">
-                <div className="column-title">{status} <span className="count">{grouped[status]?.length || 0}</span></div>
+                <div className="column-title" style={{ color: STATUS_COLORS[status] ?? '#71717a' }}>{status} <span className="count">{grouped[status]?.length || 0}</span></div>
                 {status === "To Do" && <button className="btn ghost" title="Create request" onClick={resetBuilder}>＋</button>}
               </div>
-              {grouped[status]?.map((request) => <TaskCard key={request.id} request={request} onOpen={openTask} onDragStart={handleDragStart} onEdit={handleEditClick} />)}
+              {grouped[status]?.map((request) => (
+                <TaskCard
+                  key={request.id}
+                  request={request}
+                  onOpen={openTask}
+                  onEdit={handleEditClick}
+                  statusColor={STATUS_COLORS[request.status]}
+                  onStatusChange={(newStatus) => {
+                    setRequests(prev =>
+                      prev.map(r => r.id === request.id
+                        ? { ...r, status: newStatus, activity: [makeActivity(`Status changed to ${newStatus}`), ...(r.activity || [])] }
+                        : r
+                      )
+                    );
+                    if (newStatus === "For Revision") {
+                      setRevisionTarget({ requestId: request.id });
+                    }
+                  }}
+                />
+              ))}
             </section>
           ))}
         </div>
