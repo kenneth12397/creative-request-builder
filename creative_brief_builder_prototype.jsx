@@ -1244,11 +1244,11 @@ export default function CreativeBriefBuilderPrototype() {
       supabase
         .from("requests")
         .upsert(toUpsert.map((r) => ({ id: r.id, data: r })))
-        .then(({ error }) => { if (error) showToast(error.message ?? 'Sync failed', 'error'); });
+        .then(({ error }) => { if (error) { console.error('[Supabase] upsert failed:', error); showToast('Save failed. Please try again.', 'error'); } });
     }
     toDelete.forEach((r) => {
       supabase.from("requests").delete().eq("id", r.id)
-        .then(({ error }) => { if (error) showToast(error.message ?? 'Sync failed', 'error'); });
+        .then(({ error }) => { if (error) { console.error('[Supabase] delete failed:', error); showToast('Delete failed. Please try again.', 'error'); } });
     });
   }, [requests]);
 
@@ -1447,21 +1447,11 @@ export default function CreativeBriefBuilderPrototype() {
         confirmLabel="Delete"
         confirmVariant="danger"
         onCancel={() => setDeletingRequest(null)}
-        onConfirm={async () => {
-          try {
-            const { error } = await supabase
-              .from('requests')
-              .delete()
-              .eq('id', deletingRequest.id);
-            if (error) throw error;
-            setRequests((prev) => prev.filter((r) => r.id !== deletingRequest.id));
-            setSelectedId(null);
-            setDeletingRequest(null);
-            showToast('Request deleted');
-          } catch (err) {
-            showToast(err.message ?? 'Failed to delete request', 'error');
-            setDeletingRequest(null);
-          }
+        onConfirm={() => {
+          setRequests((prev) => prev.filter((r) => r.id !== deletingRequest.id));
+          setSelectedId(null);
+          setDeletingRequest(null);
+          showToast('Request deleted');
         }}
       />
 
