@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { MATERIAL_PRESETS, normalizeDeliverable, detectDeliverablesFromText, statusPillColor } from './src/deliverables.js'
+import Toast from './src/components/Toast'
+import { ConfirmModal, InputModal } from './src/components/Modal'
+import StatusDropdown, { STATUS_COLORS } from './src/components/StatusDropdown'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -100,13 +103,13 @@ const css = `
   .thumb-remove { position: absolute; top: 6px; right: 6px; border: 0; width: 24px; height: 24px; border-radius: 999px; background: rgba(24,24,27,.82); color: white; cursor: pointer; }
   .board { display: grid; grid-template-columns: repeat(5, minmax(210px, 1fr)); gap: 14px; align-items: start; overflow-x: auto; padding-bottom: 12px; }
   .board-column { min-height: 520px; background: #ededf0; border: 1px solid #e4e4e7; border-radius: 18px; padding: 10px; }
-  .board-column.drag-over { outline: 3px solid rgba(139,92,246,.25); }
   .column-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 4px 10px; }
   .column-title { font-weight: 900; display: flex; align-items: center; gap: 8px; }
   .count { min-width: 24px; height: 24px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: white; border: 1px solid #d4d4d8; font-size: 12px; color: #52525b; }
-  .task-card { position: relative; background: white; border: 1px solid #dddde3; border-radius: 4px; padding: 14px 12px 12px 22px; margin-bottom: 10px; cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,.08); min-height: 112px; transition: transform .08s ease, box-shadow .12s ease; }
+  .task-card { position: relative; background: white; border: 1px solid #dddde3; border-radius: 4px; padding: 14px 12px 12px 22px; margin-bottom: 10px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.08); min-height: 112px; transition: transform .08s ease, box-shadow .12s ease; }
   .task-card:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,.10); }
-  .task-card:active { cursor: grabbing; }
+  .card-actions { opacity: 0; transition: opacity 150ms; }
+  .task-card:hover .card-actions { opacity: 1; }
   .deadline-strip { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; border-radius: 4px 0 0 4px; background: #a1a1aa; }
   .strip-gray { background: #a1a1aa; }
   .strip-green { background: #22c55e; }
@@ -223,6 +226,7 @@ function formatActivityTime(iso) {
   return date.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
+// TODO: replace "Current User" with real user identity from partner system profile
 function makeActivity(action, detail = "", actor = "Current User") {
   return { id: uid("ACT"), action, detail, actor, createdAt: new Date().toISOString() };
 }
@@ -510,7 +514,7 @@ function RequestPreview({ form, ai, onReview }) {
   );
 }
 
-function DeliverableComposer({ form, setForm }) {
+function DeliverableComposer({ form, setForm, showToast }) {
   const [input, setInput] = React.useState("")
   const [suggestions, setSuggestions] = React.useState([])
   const [detectedItems, setDetectedItems] = React.useState(null)
@@ -593,7 +597,7 @@ function DeliverableComposer({ form, setForm }) {
     const found = detectDeliverablesFromText(briefText)
     const existingLabels = new Set(deliverables.map(d => d.label.toLowerCase()))
     const novel = found.filter(f => !existingLabels.has(f.label.toLowerCase()))
-    if (!novel.length) { alert("No new deliverables detected in the brief."); return }
+    if (!novel.length) { if (showToast) showToast('No new deliverables detected in the brief.', 'error'); return }
     setDetectedItems(novel)
     setSelectedDetected(novel.map(d => d.id))
   }
@@ -786,7 +790,7 @@ function ReferenceUploader({ form, setForm }) {
   );
 }
 
-function RequestReviewModal({ form, ai, onCancel, onSubmit }) {
+function RequestReviewModal({ form, ai, onCancel, onSubmit, isEditing }) {
   const missing = getMissing(form);
   const output = ai || generateOutput(form);
   return (
@@ -807,14 +811,14 @@ function RequestReviewModal({ form, ai, onCancel, onSubmit }) {
               <div className="info-box"><div className="field-label">References</div><p>{form.referenceImages.length} image{form.referenceImages.length === 1 ? "" : "s"} attached</p><p className="muted small">{form.referenceNotes || "No reference notes."}</p></div>
             </div>
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 10 }}><button className="btn secondary" onClick={onCancel}>Back to Edit</button><button className="btn purple" onClick={onSubmit}>Submit Request</button></div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 10 }}><button className="btn secondary" onClick={onCancel}>Back to Edit</button><button className="btn purple" onClick={onSubmit}>{isEditing ? 'Save Changes' : 'Submit Request'}</button></div>
         </div>
       </div>
     </div>
   );
 }
 
-function TaskCard({ request, onOpen, onDragStart }) {
+function TaskCard({ request, onOpen, onEdit, onStatusChange, statusColor }) {
   const meta = deadlineMeta(request.form.deadline);
   const deliverables = request.form.deliverables || [];
   const done = deliverables.filter((d) => d.status === "Done").length;
@@ -822,29 +826,42 @@ function TaskCard({ request, onOpen, onDragStart }) {
   return (
     <div
       className="task-card"
-      draggable
-      onDragStart={(e) => onDragStart(e, request.id)}
       onClick={() => onOpen(request.id)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter") onOpen(request.id); }}
     >
-      <span className={`deadline-strip ${meta.strip}`} />
+      <span className="deadline-strip" style={{ background: statusColor ?? '#a1a1aa' }} />
       <div className="task-top">
         <span className="pill purple">{request.form.outputMode}</span>
         <button className="btn ghost" type="button" onClick={(e) => e.stopPropagation()}>•••</button>
       </div>
       <h3 className="task-title">{request.form.title || "Untitled Request"}</h3>
+      <div onClick={(e) => e.stopPropagation()} style={{ marginBottom: 8 }}>
+        <StatusDropdown
+          value={request.status}
+          onChange={onStatusChange}
+        />
+      </div>
       <div className="task-meta">
         <span>◷ {formatDateTime(request.createdAt)} → {formatDate(request.form.deadline)}</span>
         <span className="task-icon">☑ {done}/{total || 0}</span>
         <span className="task-icon">💬 {request.comments?.length || 0}{request.unreadComments > 0 && <span className="comment-badge">{request.unreadComments}</span>}</span>
       </div>
+      <div className="card-actions" style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px' }}>
+        <button
+          onClick={(e) => { e.stopPropagation(); onEdit(request); }}
+          title="Edit request"
+          style={{ background: 'transparent', border: '1px solid #334155', borderRadius: '6px', color: '#94a3b8', cursor: 'pointer', fontSize: '0.75rem', padding: '3px 8px' }}
+        >
+          Edit
+        </button>
+      </div>
     </div>
   );
 }
 
-function TaskModal({ request, setRequests, onClose, onDelete }) {
+function TaskModal({ request, setRequests, onClose, onDelete, showToast }) {
   const [commentText, setCommentText] = useState("");
   const [commentType, setCommentType] = useState("General");
   const [assetType, setAssetType] = useState("Key Visual");
@@ -852,6 +869,7 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
   const [addingDeliverable, setAddingDeliverable] = useState(false);
   const [newDelInput, setNewDelInput] = useState("");
   const [newDelSuggestions, setNewDelSuggestions] = useState([]);
+  const [modalRevisionTarget, setModalRevisionTarget] = useState(null); // { requestId: string } | null
   if (!request) return null;
   const ai = request.ai || generateOutput(request.form);
   const meta = deadlineMeta(request.form.deadline);
@@ -866,26 +884,13 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
 
   const changeTaskStatus = (status) => {
     if (status === request.status) return;
-    let revisionNote = "";
-    if (status === "For Revision") {
-      revisionNote = window.prompt("Add revision note for the designer/requestor. Leave blank if there is no specific note yet.") || "";
-    }
     setRequests((prev) => prev.map((r) => {
       if (r.id !== request.id) return r;
-      let next = appendActivityToRequest({ ...r, status }, `Request moved from ${r.status} → ${status}`);
-      if (revisionNote.trim()) {
-        const revisionComment = { id: uid("COM"), type: "Revision", author: "Current User", body: revisionNote.trim(), createdAt: new Date().toISOString() };
-        next = {
-          ...next,
-          comments: [...(next.comments || []), revisionComment],
-          unreadComments: (next.unreadComments || 0) + 1,
-          activity: [makeActivity("Revision note added", revisionNote.trim()), ...(next.activity || [])],
-        };
-      }
-      supabase.from("requests").upsert({ id: next.id, data: next })
-        .then(({ error }) => { if (error) console.error("[Supabase] status sync failed:", error.message); });
-      return next;
+      return appendActivityToRequest({ ...r, status }, `Request moved from ${r.status} → ${status}`);
     }));
+    if (status === "For Revision") {
+      setModalRevisionTarget({ requestId: request.id });
+    }
   };
 
   const changeAssignee = (assignedTo) => {
@@ -962,6 +967,7 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
   const addComment = () => {
     const body = commentText.trim();
     if (!body) return;
+    // TODO: replace "Current User" with real user identity from partner system profile
     const nextComment = { id: uid("COM"), type: commentType, author: "Current User", body, createdAt: new Date().toISOString() };
     setRequests((prev) => prev.map((r) => r.id === request.id ? {
       ...r,
@@ -1044,11 +1050,18 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
                             <option key={s}>{s}</option>
                           ))}
                         </select>
-                        <button className="del-menu-btn" type="button" onClick={() => {
-                          const action = window.prompt("n = toggle notes  |  r = remove");
-                          if (action === "n") setDelExpandedNotes(prev => ({ ...prev, [d.id]: !prev[d.id] }));
-                          if (action === "r") removeModalDeliverable(d.id);
-                        }}>···</button>
+                        <button
+                          className="del-menu-btn"
+                          type="button"
+                          title="Toggle notes"
+                          onClick={() => setDelExpandedNotes(prev => ({ ...prev, [d.id]: !prev[d.id] }))}
+                        >✎</button>
+                        <button
+                          className="del-menu-btn"
+                          type="button"
+                          title="Remove deliverable"
+                          onClick={() => removeModalDeliverable(d.id)}
+                        >✕</button>
                       </div>
                       {delExpandedNotes[d.id] && (
                         <textarea
@@ -1139,6 +1152,33 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
           </div>
         </div>
       </div>
+      <InputModal
+        isOpen={modalRevisionTarget !== null}
+        title="Add Revision Note"
+        placeholder="Describe what needs to be revised..."
+        onCancel={() => setModalRevisionTarget(null)}
+        onSubmit={(note) => {
+          setRequests((prev) => prev.map((r) => {
+            if (r.id !== modalRevisionTarget.requestId) return r;
+            const revisionComment = {
+              id: uid("COM"),
+              type: "Revision",
+              // TODO: replace "Current User" with real user identity from partner system profile
+              author: "Current User",
+              body: note,
+              createdAt: new Date().toISOString(),
+            };
+            return {
+              ...r,
+              comments: [...(r.comments || []), revisionComment],
+              unreadComments: (r.unreadComments || 0) + 1,
+              activity: [makeActivity("Revision note added", note), ...(r.activity || [])],
+            };
+          }));
+          setModalRevisionTarget(null);
+          if (showToast) showToast('Revision note added');
+        }}
+      />
     </div>
   );
 }
@@ -1150,10 +1190,18 @@ export default function CreativeBriefBuilderPrototype() {
   const [ai, setAi] = useState(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
-  const [dragId, setDragId] = useState(null);
-  const [dragOverStatus, setDragOverStatus] = useState(null);
   const [filters, setFilters] = useState({ search: "", assignedTo: "" });
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
+  const [deletingRequest, setDeletingRequest] = useState(null);
+  const [revisionTarget, setRevisionTarget] = useState(null); // { requestId: string } | null
+  const [editingRequest, setEditingRequest] = useState(null);
+  const [debouncedDetails, setDebouncedDetails] = useState("");
+
+  const showToast = (message, variant = 'success') => {
+    setToast({ message, variant })
+  }
+
   const mounted = useRef(false);
   const prevRequests = useRef([]);
   const isRealtime = useRef(false);
@@ -1209,16 +1257,22 @@ export default function CreativeBriefBuilderPrototype() {
       supabase
         .from("requests")
         .upsert(toUpsert.map((r) => ({ id: r.id, data: r })))
-        .then(({ error }) => { if (error) console.error("[Supabase] upsert failed:", error.message, error); });
+        .then(({ error }) => { if (error) { console.error('[Supabase] upsert failed:', error); showToast('Save failed. Please try again.', 'error'); } });
     }
     toDelete.forEach((r) => {
       supabase.from("requests").delete().eq("id", r.id)
-        .then(({ error }) => { if (error) console.error("[Supabase] delete failed:", error.message, error); });
+        .then(({ error }) => { if (error) { console.error('[Supabase] delete failed:', error); showToast('Delete failed. Please try again.', 'error'); } });
     });
   }, [requests]);
 
+  // Debounce requestDetails to avoid expensive generateOutput on every keystroke
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedDetails(form.requestDetails ?? ""), 300);
+    return () => clearTimeout(id);
+  }, [form.requestDetails]);
+
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
-  const output = useMemo(() => generateOutput(form), [form]);
+  const output = useMemo(() => generateOutput({ ...form, requestDetails: debouncedDetails }), [form, debouncedDetails]);
   const selectedRequest = useMemo(() => requests.find((r) => r.id === selectedId) || null, [requests, selectedId]);
 
   const resetBuilder = () => {
@@ -1226,10 +1280,35 @@ export default function CreativeBriefBuilderPrototype() {
     setAi(null);
     setReviewOpen(false);
     setSelectedId(null);
+    setEditingRequest(null);
     setView("builder");
   };
 
+  const handleEditClick = (request) => {
+    setEditingRequest(request);
+    setForm({ ...request.form });
+    setAi(request.ai || null);
+    setReviewOpen(false);
+    setView('builder');
+  };
+
   const submitRequest = () => {
+    if (editingRequest) {
+      const updated = normalizeRequest({
+        ...editingRequest,
+        form: { ...form },
+        ai: ai || output,
+        activity: [makeActivity('Request edited'), ...(editingRequest.activity || [])],
+      });
+      setRequests((prev) => prev.map((r) => r.id === editingRequest.id ? updated : r));
+      setEditingRequest(null);
+      setForm(blankForm);
+      setAi(null);
+      setReviewOpen(false);
+      setView('dashboard');
+      showToast('Request updated');
+      return;
+    }
     const nextAi = ai || output;
     const record = normalizeRequest({
       id: uid(),
@@ -1239,6 +1318,7 @@ export default function CreativeBriefBuilderPrototype() {
       ai: nextAi,
       comments: [],
       unreadComments: 0,
+// TODO: replace "Current User" with real user identity from partner system profile
       activity: [makeActivity(`${form.requestor || "Current User"} submitted the request`)],
     });
     setRequests((prev) => [record, ...prev]);
@@ -1246,6 +1326,7 @@ export default function CreativeBriefBuilderPrototype() {
     setAi(null);
     setReviewOpen(false);
     setView("dashboard");
+    showToast('Request submitted successfully');
   };
 
   const openReview = () => {
@@ -1253,52 +1334,17 @@ export default function CreativeBriefBuilderPrototype() {
     setReviewOpen(true);
   };
 
-  const filteredRequests = requests.filter((r) => {
+  const filteredRequests = useMemo(() => requests.filter((r) => {
     const q = filters.search.toLowerCase();
     const matchesSearch = !q || `${r.form.title} ${r.form.requestor} ${r.form.brand} ${r.form.requestDetails}`.toLowerCase().includes(q);
     const matchesAssignee = !filters.assignedTo || r.form.assignedTo === filters.assignedTo;
     return matchesSearch && matchesAssignee;
-  });
+  }), [requests, filters]);
 
-  const grouped = STATUS_COLUMNS.reduce((acc, status) => {
+  const grouped = useMemo(() => STATUS_COLUMNS.reduce((acc, status) => {
     acc[status] = filteredRequests.filter((r) => normalizeStatus(r.status) === status);
     return acc;
-  }, {});
-
-  const handleDragStart = (e, id) => {
-    setDragId(id);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", id);
-  };
-
-  const dropOnStatus = (status) => {
-    const id = dragId;
-    if (!id) return;
-    const revisionNote = status === "For Revision"
-      ? (window.prompt("Add revision note for this task. Leave blank if there is no specific note yet.") || "")
-      : "";
-    setRequests((prev) => {
-      const next = prev.map((r) => {
-        if (r.id !== id || r.status === status) return r;
-        let updated = { ...r, status, activity: [makeActivity(`Request moved from ${r.status} → ${status}`), ...(r.activity || [])] };
-        if (revisionNote.trim()) {
-          const revisionComment = { id: uid("COM"), type: "Revision", author: "Current User", body: revisionNote.trim(), createdAt: new Date().toISOString() };
-          updated = {
-            ...updated,
-            comments: [...(updated.comments || []), revisionComment],
-            unreadComments: (updated.unreadComments || 0) + 1,
-            activity: [makeActivity("Revision note added", revisionNote.trim()), ...(updated.activity || [])],
-          };
-        }
-        supabase.from("requests").upsert({ id: updated.id, data: updated })
-          .then(({ error }) => { if (error) console.error("[Supabase] status sync failed:", error.message); });
-        return updated;
-      });
-      return next;
-    });
-    setDragId(null);
-    setDragOverStatus(null);
-  };
+  }, {}), [filteredRequests]);
 
   const openTask = (id) => {
     setSelectedId(id);
@@ -1306,9 +1352,8 @@ export default function CreativeBriefBuilderPrototype() {
   };
 
   const deleteRequest = (id) => {
-    if (!window.confirm("Delete request?")) return;
-    setRequests((prev) => prev.filter((r) => r.id !== id));
-    setSelectedId(null);
+    const target = requests.find((r) => r.id === id) || null;
+    setDeletingRequest(target);
   };
 
   const Header = () => (
@@ -1316,7 +1361,7 @@ export default function CreativeBriefBuilderPrototype() {
       <div className="header-inner">
         <div>
           <h2 style={{ margin: 0 }}>Creative Request Builder</h2>
-          <div className="muted small">Request intake → AI organized brief → draggable task dashboard</div>
+          <div className="muted small">Request intake → AI organized brief → task dashboard</div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <button className={`btn ${view === "builder" ? "" : "secondary"}`} onClick={resetBuilder}>Create Request</button>
@@ -1359,7 +1404,7 @@ export default function CreativeBriefBuilderPrototype() {
             </Section>
 
             <Section n="3" title="What size/s do you need?">
-              <DeliverableComposer form={form} setForm={setForm} />
+              <DeliverableComposer form={form} setForm={setForm} showToast={showToast} />
             </Section>
 
             <Section n="4" title="Visual references / moodboard" optional>
@@ -1375,7 +1420,12 @@ export default function CreativeBriefBuilderPrototype() {
               <Field label="Assign to"><select value={form.assignedTo} onChange={(e) => update("assignedTo", e.target.value)}>{DESIGNERS.map((designer) => <option key={designer}>{designer}</option>)}</select></Field>
             </Section>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: 30 }}><button className="btn purple" onClick={openReview}>Review Request</button></div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: 30 }}>
+              {editingRequest && (
+                <button className="btn secondary" onClick={() => { setEditingRequest(null); setForm(blankForm); setAi(null); setView('dashboard'); }}>Cancel Edit</button>
+              )}
+              <button className="btn purple" onClick={openReview}>Review Request</button>
+            </div>
           </main>
           <aside><RequestPreview form={form} ai={ai} onReview={openReview} /></aside>
         </div>
@@ -1383,7 +1433,7 @@ export default function CreativeBriefBuilderPrototype() {
 
       {view === "dashboard" && <div className="container">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-          <div><h1 style={{ margin: 0 }}>Dashboard</h1><p className="muted">Drag cards between columns. New submitted requests land in To Do.</p></div>
+          <div><h1 style={{ margin: 0 }}>Dashboard</h1><p className="muted">Use the status dropdown on each card to move requests. New submitted requests land in To Do.</p></div>
         </div>
         <div className="dashboard-toolbar">
           <input placeholder="Search title, requestor, brand, details..." value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
@@ -1395,23 +1445,91 @@ export default function CreativeBriefBuilderPrototype() {
           {STATUS_COLUMNS.map((status) => (
             <section
               key={status}
-              className={`board-column ${dragOverStatus === status ? "drag-over" : ""}`}
-              onDragOver={(e) => { e.preventDefault(); setDragOverStatus(status); }}
-              onDragLeave={() => setDragOverStatus(null)}
-              onDrop={(e) => { e.preventDefault(); dropOnStatus(status); }}
+              className="board-column"
+              style={{ borderTop: `3px solid ${STATUS_COLORS[status] ?? '#a1a1aa'}` }}
             >
               <div className="column-header">
-                <div className="column-title">{status} <span className="count">{grouped[status]?.length || 0}</span></div>
+                <div className="column-title" style={{ color: STATUS_COLORS[status] ?? '#71717a' }}>{status} <span className="count">{grouped[status]?.length || 0}</span></div>
                 {status === "To Do" && <button className="btn ghost" title="Create request" onClick={resetBuilder}>＋</button>}
               </div>
-              {grouped[status]?.map((request) => <TaskCard key={request.id} request={request} onOpen={openTask} onDragStart={handleDragStart} />)}
+              {grouped[status]?.map((request) => (
+                <TaskCard
+                  key={request.id}
+                  request={request}
+                  onOpen={openTask}
+                  onEdit={handleEditClick}
+                  statusColor={STATUS_COLORS[request.status]}
+                  onStatusChange={(newStatus) => {
+                    setRequests(prev =>
+                      prev.map(r => r.id === request.id
+                        ? { ...r, status: newStatus, activity: [makeActivity(`Status changed to ${newStatus}`), ...(r.activity || [])] }
+                        : r
+                      )
+                    );
+                    if (newStatus === "For Revision") {
+                      setRevisionTarget({ requestId: request.id });
+                    }
+                  }}
+                />
+              ))}
             </section>
           ))}
         </div>
       </div>}
 
-      {reviewOpen && <RequestReviewModal form={form} ai={ai || output} onCancel={() => setReviewOpen(false)} onSubmit={submitRequest} />}
-      {selectedRequest && <TaskModal request={selectedRequest} setRequests={setRequests} onClose={() => setSelectedId(null)} onDelete={deleteRequest} />}
+      {reviewOpen && <RequestReviewModal form={form} ai={ai || output} onCancel={() => setReviewOpen(false)} onSubmit={submitRequest} isEditing={editingRequest !== null} />}
+      {selectedRequest && <TaskModal request={selectedRequest} setRequests={setRequests} onClose={() => setSelectedId(null)} onDelete={deleteRequest} showToast={showToast} />}
+
+      <ConfirmModal
+        isOpen={deletingRequest !== null}
+        title={`Delete "${deletingRequest?.form?.title || 'this request'}"?`}
+        message="This cannot be undone. All deliverables and comments will be permanently removed."
+        confirmLabel="Delete"
+        confirmVariant="danger"
+        onCancel={() => setDeletingRequest(null)}
+        onConfirm={() => {
+          setRequests((prev) => prev.filter((r) => r.id !== deletingRequest.id));
+          setSelectedId(null);
+          setDeletingRequest(null);
+          showToast('Request deleted');
+        }}
+      />
+
+      <InputModal
+        isOpen={revisionTarget !== null}
+        title="Add Revision Note"
+        placeholder="Describe what needs to be revised..."
+        onCancel={() => setRevisionTarget(null)}
+        onSubmit={(note) => {
+          setRequests((prev) => prev.map((r) => {
+            if (r.id !== revisionTarget.requestId) return r;
+            const revisionComment = {
+              id: uid("COM"),
+              type: "Revision",
+              // TODO: replace "Current User" with real user identity from partner system profile
+              author: "Current User",
+              body: note,
+              createdAt: new Date().toISOString(),
+            };
+            return {
+              ...r,
+              comments: [...(r.comments || []), revisionComment],
+              unreadComments: (r.unreadComments || 0) + 1,
+              activity: [makeActivity("Revision note added", note), ...(r.activity || [])],
+            };
+          }));
+          setRevisionTarget(null);
+          showToast('Revision note added');
+        }}
+      />
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          variant={toast.variant}
+          onDismiss={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
