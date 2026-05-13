@@ -109,7 +109,8 @@ const css = `
   .task-card { position: relative; background: white; border: 1px solid #dddde3; border-radius: 4px; padding: 14px 12px 12px 22px; margin-bottom: 10px; cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,.08); min-height: 112px; transition: transform .08s ease, box-shadow .12s ease; }
   .task-card:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,.10); }
   .task-card:active { cursor: grabbing; }
-  .task-card:hover .card-actions { opacity: 1 !important; }
+  .card-actions { opacity: 0; transition: opacity 150ms; }
+  .task-card:hover .card-actions { opacity: 1; }
   .deadline-strip { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; border-radius: 4px 0 0 4px; background: #a1a1aa; }
   .strip-gray { background: #a1a1aa; }
   .strip-green { background: #22c55e; }
@@ -843,7 +844,7 @@ function TaskCard({ request, onOpen, onDragStart, onEdit }) {
         <span className="task-icon">☑ {done}/{total || 0}</span>
         <span className="task-icon">💬 {request.comments?.length || 0}{request.unreadComments > 0 && <span className="comment-badge">{request.unreadComments}</span>}</span>
       </div>
-      <div className="card-actions" style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px', opacity: 0, transition: 'opacity 150ms' }}>
+      <div className="card-actions" style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px' }}>
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(request); }}
           title="Edit request"
@@ -1290,6 +1291,7 @@ export default function CreativeBriefBuilderPrototype() {
         ...editingRequest,
         form: { ...form },
         ai: ai || output,
+        activity: [makeActivity('Request edited'), ...(editingRequest.activity || [])],
       });
       setRequests((prev) => prev.map((r) => r.id === editingRequest.id ? updated : r));
       setEditingRequest(null);
@@ -1437,7 +1439,12 @@ export default function CreativeBriefBuilderPrototype() {
               <Field label="Assign to"><select value={form.assignedTo} onChange={(e) => update("assignedTo", e.target.value)}>{DESIGNERS.map((designer) => <option key={designer}>{designer}</option>)}</select></Field>
             </Section>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: 30 }}><button className="btn purple" onClick={openReview}>Review Request</button></div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: 30 }}>
+              {editingRequest && (
+                <button className="btn secondary" onClick={() => { setEditingRequest(null); setForm(blankForm); setAi(null); setView('dashboard'); }}>Cancel Edit</button>
+              )}
+              <button className="btn purple" onClick={openReview}>Review Request</button>
+            </div>
           </main>
           <aside><RequestPreview form={form} ai={ai} onReview={openReview} /></aside>
         </div>
