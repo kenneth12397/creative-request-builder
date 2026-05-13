@@ -226,6 +226,7 @@ function formatActivityTime(iso) {
   return date.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
+// TODO: replace "Current User" with real user identity from partner system profile
 function makeActivity(action, detail = "", actor = "Current User") {
   return { id: uid("ACT"), action, detail, actor, createdAt: new Date().toISOString() };
 }
@@ -969,6 +970,7 @@ function TaskModal({ request, setRequests, onClose, onDelete, showToast }) {
   const addComment = () => {
     const body = commentText.trim();
     if (!body) return;
+    // TODO: replace "Current User" with real user identity from partner system profile
     const nextComment = { id: uid("COM"), type: commentType, author: "Current User", body, createdAt: new Date().toISOString() };
     setRequests((prev) => prev.map((r) => r.id === request.id ? {
       ...r,
@@ -1319,6 +1321,7 @@ export default function CreativeBriefBuilderPrototype() {
       ai: nextAi,
       comments: [],
       unreadComments: 0,
+// TODO: replace "Current User" with real user identity from partner system profile
       activity: [makeActivity(`${form.requestor || "Current User"} submitted the request`)],
     });
     setRequests((prev) => [record, ...prev]);
