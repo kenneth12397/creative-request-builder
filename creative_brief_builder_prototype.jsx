@@ -109,6 +109,7 @@ const css = `
   .task-card { position: relative; background: white; border: 1px solid #dddde3; border-radius: 4px; padding: 14px 12px 12px 22px; margin-bottom: 10px; cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,.08); min-height: 112px; transition: transform .08s ease, box-shadow .12s ease; }
   .task-card:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,.10); }
   .task-card:active { cursor: grabbing; }
+  .task-card:hover .card-actions { opacity: 1 !important; }
   .deadline-strip { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; border-radius: 4px 0 0 4px; background: #a1a1aa; }
   .strip-gray { background: #a1a1aa; }
   .strip-green { background: #22c55e; }
@@ -788,7 +789,7 @@ function ReferenceUploader({ form, setForm }) {
   );
 }
 
-function RequestReviewModal({ form, ai, onCancel, onSubmit }) {
+function RequestReviewModal({ form, ai, onCancel, onSubmit, isEditing }) {
   const missing = getMissing(form);
   const output = ai || generateOutput(form);
   return (
@@ -809,14 +810,14 @@ function RequestReviewModal({ form, ai, onCancel, onSubmit }) {
               <div className="info-box"><div className="field-label">References</div><p>{form.referenceImages.length} image{form.referenceImages.length === 1 ? "" : "s"} attached</p><p className="muted small">{form.referenceNotes || "No reference notes."}</p></div>
             </div>
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 10 }}><button className="btn secondary" onClick={onCancel}>Back to Edit</button><button className="btn purple" onClick={onSubmit}>Submit Request</button></div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 10 }}><button className="btn secondary" onClick={onCancel}>Back to Edit</button><button className="btn purple" onClick={onSubmit}>{isEditing ? 'Save Changes' : 'Submit Request'}</button></div>
         </div>
       </div>
     </div>
   );
 }
 
-function TaskCard({ request, onOpen, onDragStart }) {
+function TaskCard({ request, onOpen, onDragStart, onEdit }) {
   const meta = deadlineMeta(request.form.deadline);
   const deliverables = request.form.deliverables || [];
   const done = deliverables.filter((d) => d.status === "Done").length;
@@ -841,6 +842,15 @@ function TaskCard({ request, onOpen, onDragStart }) {
         <span>◷ {formatDateTime(request.createdAt)} → {formatDate(request.form.deadline)}</span>
         <span className="task-icon">☑ {done}/{total || 0}</span>
         <span className="task-icon">💬 {request.comments?.length || 0}{request.unreadComments > 0 && <span className="comment-badge">{request.unreadComments}</span>}</span>
+      </div>
+      <div className="card-actions" style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px', opacity: 0, transition: 'opacity 150ms' }}>
+        <button
+          onClick={(e) => { e.stopPropagation(); onEdit(request); }}
+          title="Edit request"
+          style={{ background: 'transparent', border: '1px solid #334155', borderRadius: '6px', color: '#94a3b8', cursor: 'pointer', fontSize: '0.75rem', padding: '3px 8px' }}
+        >
+          Edit
+        </button>
       </div>
     </div>
   );
@@ -1184,6 +1194,7 @@ export default function CreativeBriefBuilderPrototype() {
   const [toast, setToast] = useState(null);
   const [deletingRequest, setDeletingRequest] = useState(null);
   const [revisionTarget, setRevisionTarget] = useState(null); // { requestId: string } | null
+  const [editingRequest, setEditingRequest] = useState(null);
 
   const showToast = (message, variant = 'success') => {
     setToast({ message, variant })
@@ -1261,10 +1272,34 @@ export default function CreativeBriefBuilderPrototype() {
     setAi(null);
     setReviewOpen(false);
     setSelectedId(null);
+    setEditingRequest(null);
     setView("builder");
   };
 
+  const handleEditClick = (request) => {
+    setEditingRequest(request);
+    setForm({ ...request.form });
+    setAi(request.ai || null);
+    setReviewOpen(false);
+    setView('builder');
+  };
+
   const submitRequest = () => {
+    if (editingRequest) {
+      const updated = normalizeRequest({
+        ...editingRequest,
+        form: { ...form },
+        ai: ai || output,
+      });
+      setRequests((prev) => prev.map((r) => r.id === editingRequest.id ? updated : r));
+      setEditingRequest(null);
+      setForm(blankForm);
+      setAi(null);
+      setReviewOpen(false);
+      setView('dashboard');
+      showToast('Request updated');
+      return;
+    }
     const nextAi = ai || output;
     const record = normalizeRequest({
       id: uid(),
@@ -1431,13 +1466,13 @@ export default function CreativeBriefBuilderPrototype() {
                 <div className="column-title">{status} <span className="count">{grouped[status]?.length || 0}</span></div>
                 {status === "To Do" && <button className="btn ghost" title="Create request" onClick={resetBuilder}>＋</button>}
               </div>
-              {grouped[status]?.map((request) => <TaskCard key={request.id} request={request} onOpen={openTask} onDragStart={handleDragStart} />)}
+              {grouped[status]?.map((request) => <TaskCard key={request.id} request={request} onOpen={openTask} onDragStart={handleDragStart} onEdit={handleEditClick} />)}
             </section>
           ))}
         </div>
       </div>}
 
-      {reviewOpen && <RequestReviewModal form={form} ai={ai || output} onCancel={() => setReviewOpen(false)} onSubmit={submitRequest} />}
+      {reviewOpen && <RequestReviewModal form={form} ai={ai || output} onCancel={() => setReviewOpen(false)} onSubmit={submitRequest} isEditing={editingRequest !== null} />}
       {selectedRequest && <TaskModal request={selectedRequest} setRequests={setRequests} onClose={() => setSelectedId(null)} onDelete={deleteRequest} showToast={showToast} />}
 
       <ConfirmModal
