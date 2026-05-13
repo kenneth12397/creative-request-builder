@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { MATERIAL_PRESETS, normalizeDeliverable, detectDeliverablesFromText, statusPillColor } from './src/deliverables.js'
+import Toast from './src/components/Toast'
+import { ConfirmModal, InputModal } from './src/components/Modal'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -844,7 +846,7 @@ function TaskCard({ request, onOpen, onDragStart }) {
   );
 }
 
-function TaskModal({ request, setRequests, onClose, onDelete }) {
+function TaskModal({ request, setRequests, onClose, onDelete, showToast }) {
   const [commentText, setCommentText] = useState("");
   const [commentType, setCommentType] = useState("General");
   const [assetType, setAssetType] = useState("Key Visual");
@@ -852,6 +854,7 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
   const [addingDeliverable, setAddingDeliverable] = useState(false);
   const [newDelInput, setNewDelInput] = useState("");
   const [newDelSuggestions, setNewDelSuggestions] = useState([]);
+  const [modalRevisionTarget, setModalRevisionTarget] = useState(null); // { requestId: string } | null
   if (!request) return null;
   const ai = request.ai || generateOutput(request.form);
   const meta = deadlineMeta(request.form.deadline);
@@ -866,26 +869,16 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
 
   const changeTaskStatus = (status) => {
     if (status === request.status) return;
-    let revisionNote = "";
-    if (status === "For Revision") {
-      revisionNote = window.prompt("Add revision note for the designer/requestor. Leave blank if there is no specific note yet.") || "";
-    }
     setRequests((prev) => prev.map((r) => {
       if (r.id !== request.id) return r;
-      let next = appendActivityToRequest({ ...r, status }, `Request moved from ${r.status} → ${status}`);
-      if (revisionNote.trim()) {
-        const revisionComment = { id: uid("COM"), type: "Revision", author: "Current User", body: revisionNote.trim(), createdAt: new Date().toISOString() };
-        next = {
-          ...next,
-          comments: [...(next.comments || []), revisionComment],
-          unreadComments: (next.unreadComments || 0) + 1,
-          activity: [makeActivity("Revision note added", revisionNote.trim()), ...(next.activity || [])],
-        };
-      }
+      const next = appendActivityToRequest({ ...r, status }, `Request moved from ${r.status} → ${status}`);
       supabase.from("requests").upsert({ id: next.id, data: next })
         .then(({ error }) => { if (error) console.error("[Supabase] status sync failed:", error.message); });
       return next;
     }));
+    if (status === "For Revision") {
+      setModalRevisionTarget({ requestId: request.id });
+    }
   };
 
   const changeAssignee = (assignedTo) => {
@@ -1044,11 +1037,18 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
                             <option key={s}>{s}</option>
                           ))}
                         </select>
-                        <button className="del-menu-btn" type="button" onClick={() => {
-                          const action = window.prompt("n = toggle notes  |  r = remove");
-                          if (action === "n") setDelExpandedNotes(prev => ({ ...prev, [d.id]: !prev[d.id] }));
-                          if (action === "r") removeModalDeliverable(d.id);
-                        }}>···</button>
+                        <button
+                          className="del-menu-btn"
+                          type="button"
+                          title="Toggle notes"
+                          onClick={() => setDelExpandedNotes(prev => ({ ...prev, [d.id]: !prev[d.id] }))}
+                        >✎</button>
+                        <button
+                          className="del-menu-btn"
+                          type="button"
+                          title="Remove deliverable"
+                          onClick={() => removeModalDeliverable(d.id)}
+                        >✕</button>
                       </div>
                       {delExpandedNotes[d.id] && (
                         <textarea
@@ -1139,6 +1139,33 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
           </div>
         </div>
       </div>
+      <InputModal
+        isOpen={modalRevisionTarget !== null}
+        title="Add Revision Note"
+        placeholder="Describe what needs to be revised..."
+        onCancel={() => setModalRevisionTarget(null)}
+        onSubmit={(note) => {
+          setRequests((prev) => prev.map((r) => {
+            if (r.id !== modalRevisionTarget.requestId) return r;
+            const revisionComment = {
+              id: uid("COM"),
+              type: "Revision",
+              // TODO: replace "Current User" with real user identity from partner system profile
+              author: "Current User",
+              body: note,
+              createdAt: new Date().toISOString(),
+            };
+            return {
+              ...r,
+              comments: [...(r.comments || []), revisionComment],
+              unreadComments: (r.unreadComments || 0) + 1,
+              activity: [makeActivity("Revision note added", note), ...(r.activity || [])],
+            };
+          }));
+          setModalRevisionTarget(null);
+          if (showToast) showToast('Revision note added');
+        }}
+      />
     </div>
   );
 }
@@ -1154,6 +1181,14 @@ export default function CreativeBriefBuilderPrototype() {
   const [dragOverStatus, setDragOverStatus] = useState(null);
   const [filters, setFilters] = useState({ search: "", assignedTo: "" });
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
+  const [deletingRequest, setDeletingRequest] = useState(null);
+  const [revisionTarget, setRevisionTarget] = useState(null); // { requestId: string } | null
+
+  const showToast = (message, variant = 'success') => {
+    setToast({ message, variant })
+  }
+
   const mounted = useRef(false);
   const prevRequests = useRef([]);
   const isRealtime = useRef(false);
@@ -1246,6 +1281,7 @@ export default function CreativeBriefBuilderPrototype() {
     setAi(null);
     setReviewOpen(false);
     setView("dashboard");
+    showToast('Request submitted successfully');
   };
 
   const openReview = () => {
@@ -1274,28 +1310,20 @@ export default function CreativeBriefBuilderPrototype() {
   const dropOnStatus = (status) => {
     const id = dragId;
     if (!id) return;
-    const revisionNote = status === "For Revision"
-      ? (window.prompt("Add revision note for this task. Leave blank if there is no specific note yet.") || "")
-      : "";
+    // Apply status change immediately; prompt for revision note via modal if needed
     setRequests((prev) => {
       const next = prev.map((r) => {
         if (r.id !== id || r.status === status) return r;
-        let updated = { ...r, status, activity: [makeActivity(`Request moved from ${r.status} → ${status}`), ...(r.activity || [])] };
-        if (revisionNote.trim()) {
-          const revisionComment = { id: uid("COM"), type: "Revision", author: "Current User", body: revisionNote.trim(), createdAt: new Date().toISOString() };
-          updated = {
-            ...updated,
-            comments: [...(updated.comments || []), revisionComment],
-            unreadComments: (updated.unreadComments || 0) + 1,
-            activity: [makeActivity("Revision note added", revisionNote.trim()), ...(updated.activity || [])],
-          };
-        }
+        const updated = { ...r, status, activity: [makeActivity(`Request moved from ${r.status} → ${status}`), ...(r.activity || [])] };
         supabase.from("requests").upsert({ id: updated.id, data: updated })
           .then(({ error }) => { if (error) console.error("[Supabase] status sync failed:", error.message); });
         return updated;
       });
       return next;
     });
+    if (status === "For Revision") {
+      setRevisionTarget({ requestId: id });
+    }
     setDragId(null);
     setDragOverStatus(null);
   };
@@ -1306,9 +1334,8 @@ export default function CreativeBriefBuilderPrototype() {
   };
 
   const deleteRequest = (id) => {
-    if (!window.confirm("Delete request?")) return;
-    setRequests((prev) => prev.filter((r) => r.id !== id));
-    setSelectedId(null);
+    const target = requests.find((r) => r.id === id) || null;
+    setDeletingRequest(target);
   };
 
   const Header = () => (
@@ -1411,7 +1438,58 @@ export default function CreativeBriefBuilderPrototype() {
       </div>}
 
       {reviewOpen && <RequestReviewModal form={form} ai={ai || output} onCancel={() => setReviewOpen(false)} onSubmit={submitRequest} />}
-      {selectedRequest && <TaskModal request={selectedRequest} setRequests={setRequests} onClose={() => setSelectedId(null)} onDelete={deleteRequest} />}
+      {selectedRequest && <TaskModal request={selectedRequest} setRequests={setRequests} onClose={() => setSelectedId(null)} onDelete={deleteRequest} showToast={showToast} />}
+
+      <ConfirmModal
+        isOpen={deletingRequest !== null}
+        title={`Delete "${deletingRequest?.form?.title || 'this request'}"?`}
+        message="This cannot be undone. All deliverables and comments will be permanently removed."
+        confirmLabel="Delete"
+        confirmVariant="danger"
+        onCancel={() => setDeletingRequest(null)}
+        onConfirm={() => {
+          setRequests((prev) => prev.filter((r) => r.id !== deletingRequest.id));
+          setSelectedId(null);
+          setDeletingRequest(null);
+          showToast('Request deleted');
+        }}
+      />
+
+      <InputModal
+        isOpen={revisionTarget !== null}
+        title="Add Revision Note"
+        placeholder="Describe what needs to be revised..."
+        onCancel={() => setRevisionTarget(null)}
+        onSubmit={(note) => {
+          setRequests((prev) => prev.map((r) => {
+            if (r.id !== revisionTarget.requestId) return r;
+            const revisionComment = {
+              id: uid("COM"),
+              type: "Revision",
+              // TODO: replace "Current User" with real user identity from partner system profile
+              author: "Current User",
+              body: note,
+              createdAt: new Date().toISOString(),
+            };
+            return {
+              ...r,
+              comments: [...(r.comments || []), revisionComment],
+              unreadComments: (r.unreadComments || 0) + 1,
+              activity: [makeActivity("Revision note added", note), ...(r.activity || [])],
+            };
+          }));
+          setRevisionTarget(null);
+          showToast('Revision note added');
+        }}
+      />
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          variant={toast.variant}
+          onDismiss={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
