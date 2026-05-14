@@ -215,6 +215,12 @@ const css = `
   .del-confirm-actions { display: flex; gap: 6px; margin-top: 8px; }
   .del-confirm-add { padding: 5px 12px; background: #16a34a; color: #fff; border: none; border-radius: 5px; font-size: 12px; cursor: pointer; }
   .del-confirm-dismiss { padding: 5px 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 12px; cursor: pointer; }
+  .revision-dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .revision-dialog { background: #fff; border-radius: 18px; padding: 28px 28px 22px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 0; }
+  .revision-dialog-title { font-size: 17px; font-weight: 800; color: #18181b; margin-bottom: 6px; }
+  .revision-dialog-textarea { width: 100%; min-height: 100px; border-radius: 10px; border: 1.5px solid #e5e7eb; padding: 12px 14px; font-size: 14px; font-family: inherit; resize: vertical; margin: 10px 0 16px; box-sizing: border-box; }
+  .revision-dialog-textarea:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+  .revision-dialog-actions { display: flex; gap: 8px; justify-content: flex-end; }
   @media (max-width: 1000px) { .grid, .detail-grid, .dashboard-toolbar { grid-template-columns: 1fr; } .sticky { position: static; } .board { grid-template-columns: repeat(5, 260px); } }
   @media (max-width: 620px) { .row, .three-row { grid-template-columns: 1fr; } .task-meta { grid-template-columns: 1fr auto auto; gap: 8px; } }
 `;
@@ -959,6 +965,8 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
   const [newDelSuggestions, setNewDelSuggestions] = useState([]);
   const [modalDelMenu, setModalDelMenu] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [revisionDialog, setRevisionDialog] = useState(null);
+  const [revisionNoteText, setRevisionNoteText] = useState("");
   if (!request) return null;
   const ai = request.ai || generateOutput(request.form);
   const meta = deadlineMeta(request.form.deadline);
@@ -970,12 +978,7 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
     activity: [makeActivity(action, detail), ...(r.activity || [])],
   });
 
-  const changeTaskStatus = (status) => {
-    if (status === request.status) return;
-    let revisionNote = "";
-    if (status === "For Revision") {
-      revisionNote = window.prompt("Add revision note for the designer/requestor. Leave blank if there is no specific note yet.") || "";
-    }
+  const applyStatusChange = (status, revisionNote) => {
     setRequests((prev) => prev.map((r) => {
       if (r.id !== request.id) return r;
       let next = appendActivityToRequest({ ...r, status }, `Request moved from ${r.status} → ${status}`);
@@ -992,6 +995,16 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
         .then(({ error }) => { if (error) console.error("[Supabase] status sync failed:", error.message); });
       return next;
     }));
+  };
+
+  const changeTaskStatus = (status) => {
+    if (status === request.status) return;
+    if (status === "For Revision") {
+      setRevisionNoteText("");
+      setRevisionDialog({ pendingStatus: status });
+      return;
+    }
+    applyStatusChange(status, "");
   };
 
   const changeAssignee = (assignedTo) => {
@@ -1292,6 +1305,25 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
           </div>
         </div>
       </div>
+      {revisionDialog && (
+        <div className="revision-dialog-overlay" onClick={() => setRevisionDialog(null)}>
+          <div className="revision-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="revision-dialog-title">Add Revision Note</div>
+            <p className="muted" style={{ margin: 0 }}>Optional — describe what needs to change. Leave blank to just move the status.</p>
+            <textarea
+              className="revision-dialog-textarea"
+              value={revisionNoteText}
+              onChange={(e) => setRevisionNoteText(e.target.value)}
+              placeholder="What needs to be revised? Be specific..."
+              autoFocus
+            />
+            <div className="revision-dialog-actions">
+              <button className="btn secondary" type="button" onClick={() => setRevisionDialog(null)}>Cancel</button>
+              <button className="btn purple" type="button" onClick={() => { applyStatusChange(revisionDialog.pendingStatus, revisionNoteText); setRevisionDialog(null); setRevisionNoteText(""); }}>Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1307,6 +1339,8 @@ export default function CreativeBriefBuilderPrototype() {
   const [dragOverStatus, setDragOverStatus] = useState(null);
   const [filters, setFilters] = useState({ search: "", assignedTo: "" });
   const [loading, setLoading] = useState(true);
+  const [boardRevision, setBoardRevision] = useState(null);
+  const [boardRevisionNote, setBoardRevisionNote] = useState("");
   const mounted = useRef(false);
   const prevRequests = useRef([]);
   const isRealtime = useRef(false);
@@ -1424,33 +1458,36 @@ export default function CreativeBriefBuilderPrototype() {
     e.dataTransfer.setData("text/plain", id);
   };
 
+  const applyBoardDrop = (id, status, revisionNote) => {
+    setRequests((prev) => prev.map((r) => {
+      if (r.id !== id || r.status === status) return r;
+      let updated = { ...r, status, activity: [makeActivity(`Request moved from ${r.status} → ${status}`), ...(r.activity || [])] };
+      if (revisionNote.trim()) {
+        const revisionComment = { id: uid("COM"), type: "Revision", author: "Current User", body: revisionNote.trim(), createdAt: new Date().toISOString() };
+        updated = {
+          ...updated,
+          comments: [...(updated.comments || []), revisionComment],
+          unreadComments: (updated.unreadComments || 0) + 1,
+          activity: [makeActivity("Revision note added", revisionNote.trim()), ...(updated.activity || [])],
+        };
+      }
+      supabase.from("requests").upsert({ id: updated.id, data: updated })
+        .then(({ error }) => { if (error) console.error("[Supabase] status sync failed:", error.message); });
+      return updated;
+    }));
+  };
+
   const dropOnStatus = (status) => {
     const id = dragId;
     if (!id) return;
-    const revisionNote = status === "For Revision"
-      ? (window.prompt("Add revision note for this task. Leave blank if there is no specific note yet.") || "")
-      : "";
-    setRequests((prev) => {
-      const next = prev.map((r) => {
-        if (r.id !== id || r.status === status) return r;
-        let updated = { ...r, status, activity: [makeActivity(`Request moved from ${r.status} → ${status}`), ...(r.activity || [])] };
-        if (revisionNote.trim()) {
-          const revisionComment = { id: uid("COM"), type: "Revision", author: "Current User", body: revisionNote.trim(), createdAt: new Date().toISOString() };
-          updated = {
-            ...updated,
-            comments: [...(updated.comments || []), revisionComment],
-            unreadComments: (updated.unreadComments || 0) + 1,
-            activity: [makeActivity("Revision note added", revisionNote.trim()), ...(updated.activity || [])],
-          };
-        }
-        supabase.from("requests").upsert({ id: updated.id, data: updated })
-          .then(({ error }) => { if (error) console.error("[Supabase] status sync failed:", error.message); });
-        return updated;
-      });
-      return next;
-    });
     setDragId(null);
     setDragOverStatus(null);
+    if (status === "For Revision") {
+      setBoardRevisionNote("");
+      setBoardRevision({ id, status });
+      return;
+    }
+    applyBoardDrop(id, status, "");
   };
 
   const openTask = (id) => {
@@ -1560,6 +1597,25 @@ export default function CreativeBriefBuilderPrototype() {
 
       {reviewOpen && <RequestReviewModal form={form} ai={ai || output} onCancel={() => setReviewOpen(false)} onSubmit={submitRequest} />}
       {selectedRequest && <TaskModal request={selectedRequest} setRequests={setRequests} onClose={() => setSelectedId(null)} onDelete={deleteRequest} />}
+      {boardRevision && (
+        <div className="revision-dialog-overlay" onClick={() => setBoardRevision(null)}>
+          <div className="revision-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="revision-dialog-title">Add Revision Note</div>
+            <p className="muted" style={{ margin: 0 }}>Optional — describe what needs to change. Leave blank to just move the status.</p>
+            <textarea
+              className="revision-dialog-textarea"
+              value={boardRevisionNote}
+              onChange={(e) => setBoardRevisionNote(e.target.value)}
+              placeholder="What needs to be revised? Be specific..."
+              autoFocus
+            />
+            <div className="revision-dialog-actions">
+              <button className="btn secondary" type="button" onClick={() => setBoardRevision(null)}>Cancel</button>
+              <button className="btn purple" type="button" onClick={() => { applyBoardDrop(boardRevision.id, boardRevision.status, boardRevisionNote); setBoardRevision(null); setBoardRevisionNote(""); }}>Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
