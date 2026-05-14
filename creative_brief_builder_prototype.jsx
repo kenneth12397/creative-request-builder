@@ -149,11 +149,6 @@ const css = `
   .prompt-copy-btn { width: 100%; border: 0; border-radius: 12px; padding: 11px; font-size: 14px; font-weight: 850; cursor: pointer; background: #7c3aed; color: white; transition: background .15s; }
   .prompt-copy-btn:hover { background: #6d28d9; }
   .prompt-copy-btn.copied { background: #059669; }
-  .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-  .kv-item { background: #fafafa; border: 1px solid #f1f1f1; border-radius: 10px; padding: 10px 12px; }
-  .kv-full { grid-column: 1 / -1; }
-  .kv-label { font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .06em; color: #71717a; display: block; margin-bottom: 4px; }
-  .kv-value { font-size: 13px; color: #18181b; line-height: 1.5; }
   .activity-item { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-bottom: 1px solid #f1f1f1; font-size: 13px; }
   .del-composer { display: flex; flex-direction: column; gap: 6px; }
   .del-input-row { display: flex; gap: 6px; align-items: center; }
@@ -1276,29 +1271,6 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
                   <button className="del-detect-btn" type="button" style={{ marginTop: 8, width: "100%", justifyContent: "center" }} onClick={() => setAddingDeliverable(true)}>
                     + Add deliverable
                   </button>
-                )}
-              </div>
-
-              <div className="info-box">
-                <div className="field-label">Key Visual Direction</div>
-                <div className="kv-grid">
-                  <div className="kv-item">
-                    <span className="kv-label">Mood</span>
-                    <span className="kv-value">{ai.visualDirection?.mood || "—"}</span>
-                  </div>
-                  <div className="kv-item">
-                    <span className="kv-label">Color Balance</span>
-                    <span className="kv-value">{ai.visualDirection?.colorBalance || "—"}</span>
-                  </div>
-                  <div className="kv-item kv-full">
-                    <span className="kv-label">Core Idea</span>
-                    <span className="kv-value">{ai.visualDirection?.coreIdea || "—"}</span>
-                  </div>
-                </div>
-                {ai.visualDirection?.imagery?.length > 0 && (
-                  <div style={{ marginTop: 10 }}>
-                    {ai.visualDirection.imagery.map((tag) => <span className="pill" key={tag} style={{ margin: "3px 4px 3px 0" }}>{tag}</span>)}
-                  </div>
                 )}
               </div>
 
