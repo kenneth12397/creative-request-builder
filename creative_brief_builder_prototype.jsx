@@ -459,15 +459,66 @@ Composition Rules:
 Keep a clear safe area for text and mandatories. Do not overload the layout. Make the main focal point readable from a distance. Adapt the KV consistently across all listed deliverables.`;
 }
 
+const BRAND_DNA = {
+  "LakiWin": {
+    palette: "dominant LakiWin yellow (#FFD700) and warm gold, white structural zones, controlled dark navy or black grounding elements, warm orange accent highlights",
+    aesthetic: "bold Filipino online casino — energetic, celebratory, trustworthy, premium gaming platform feel",
+    style: "vibrant digital illustration with clean graphic design, casino-gaming visual language, polished and modern",
+    motifs: "gold coins, light rays, glow halos, lucky charm iconography, winners celebrating, dynamic diagonal energy lines",
+    typography_feel: "strong impact headline weight implied in layout zones, high contrast readable hierarchy",
+  },
+  "VikingFunLand": {
+    palette: "deep forest green and weathered ocean blue, gold and bronze metallic accents, aged wood and stone textures, muted earthy midtones",
+    aesthetic: "Viking mythology adventure theme — epic, bold, mythic, action-forward, rugged yet exciting",
+    style: "dramatic character illustration with fantasy undertones, strong silhouettes against atmospheric lighting",
+    motifs: "Viking warriors, runic symbols, longships, battle axes, shields, Northern lights aurora, treasure chests, mead halls",
+    typography_feel: "carved stone or woodcut-style lettering implied in composition zones",
+  },
+  "RAC PH": {
+    palette: "racing red and matte white, metallic silver and chrome accents, track black, Philippine flag color references",
+    aesthetic: "Philippine motorsports and automotive — speed, precision, adrenaline, local racing pride",
+    style: "high-energy graphic design with dynamic motion lines, perspective-forward automotive photography aesthetic",
+    motifs: "race cars, speed blur trails, checkered flags, pit crews, helmets, trophies, asphalt textures, speedway",
+    typography_feel: "bold condensed race-number styling implied, high legibility at speed",
+  },
+  "Other Brand": {
+    palette: "neutral brand palette — clean white base with a single strong accent color, professional and flexible",
+    aesthetic: "versatile commercial — clean, clear, brand-forward without a specific theme",
+    style: "clean digital graphic design, universal commercial advertising aesthetic",
+    motifs: "product focal point, lifestyle context, clean negative space",
+    typography_feel: "clean editorial hierarchy implied in safe zones",
+  },
+}
+
+function detectVisualIntent(title, details) {
+  const t = (title + " " + details).toLowerCase()
+  if (/register|sign.?up|creat.? account|how to join|step.?by.?step/.test(t))
+    return { subject: "step-by-step registration guide visual", layout: "numbered flow (1–2–3) arranged in scannable sequence, mobile/app screen as central focal point, clean instructional composition" }
+  if (/jackpot|big win|winner|prize|reward|grand/.test(t))
+    return { subject: "jackpot celebration and prize reveal visual", layout: "explosive celebration focal point — coins, lights, trophy or winner figure as hero element, radiating energy composition" }
+  if (/promo|promotion|offer|bonus|discount|deal|sale/.test(t))
+    return { subject: "promotional campaign visual", layout: "bold hero zone for offer/message, strong CTA implied layout, product or game art as supporting element" }
+  if (/event|tournament|league|cup|championship/.test(t))
+    return { subject: "event announcement and hype visual", layout: "date/event name implied zone at top or center, dramatic build-up composition, crowd energy or arena atmosphere" }
+  if (/game|slot|poker|baccarat|feature|launch/.test(t))
+    return { subject: "game feature spotlight visual", layout: "game art or character as dominant center piece, supporting brand elements frame it, immersive gaming atmosphere" }
+  if (/pull.?up|banner|outdoor|billboard|signage/.test(t))
+    return { subject: "large-format outdoor advertising visual", layout: "vertically optimized composition, bold simple hierarchy, readable at distance — single strong focal point with brand zone at top" }
+  return { subject: "branded marketing creative", layout: "strong hero zone with one dominant focal idea, supporting graphics radiate outward from center" }
+}
+
 function buildComprehensivePrompt(form, ai) {
   const title = form.title?.trim() || "Untitled Project"
-  const brand = form.brand || ""
+  const brand = form.brand || "Other Brand"
   const outputMode = form.outputMode || "Static"
   const details = (form.requestDetails || "").trim()
   const deliverables = form.deliverables || []
   const referenceNotes = (form.referenceNotes || "").trim()
   const vd = (ai && ai.visualDirection) || {}
   const detected = (ai && ai.detected) || {}
+
+  const dna = BRAND_DNA[brand] || BRAND_DNA["Other Brand"]
+  const intent = detectVisualIntent(title, details)
 
   const deliverableLines = deliverables.length
     ? deliverables.map(d => {
@@ -477,48 +528,48 @@ function buildComprehensivePrompt(form, ai) {
       }).join("\n")
     : "• No sizes specified yet"
 
-  const flags = []
-  if (/qr/i.test(details)) flags.push("QR code area")
-  if (/pagcor/i.test(details)) flags.push("PAGCOR mandatories")
-  if (/responsible.?gaming/i.test(details)) flags.push("responsible gaming disclaimer")
-  if (/logo/i.test(details)) flags.push(`${brand} logo`)
-  const safeAreas = flags.length ? flags.join(", ") : "logo, headline, and mandatory text areas"
-
   const firstWithDims = deliverables.find(d => d.width && d.height && d.unit !== "N/A")
   const arHint = firstWithDims ? `--ar ${firstWithDims.width}:${firstWithDims.height}` : ""
 
-  const aiPromptParts = [
-    vd.coreIdea || `Marketing creative for ${brand}`,
-    detected.featuredProduct && detected.featuredProduct !== "Not clearly provided"
-      ? `Feature ${detected.featuredProduct} as the focal point.` : null,
-    vd.mood ? vd.mood + "." : null,
-    vd.colorBalance ? vd.colorBalance + "." : null,
-    `Leave clear safe areas for: ${safeAreas}. No final ad text or logos in the generated image.`,
-    outputMode === "Motion" ? "Composition optimized for animation — avoid static-only framing." : null,
-    referenceNotes ? `Reference direction: ${referenceNotes}` : null,
-    arHint || null,
-  ].filter(Boolean).join(" ")
+  const mandatories = []
+  if (/qr/i.test(details)) mandatories.push("designated QR code placement zone")
+  if (/pagcor/i.test(details)) mandatories.push("PAGCOR regulatory text band")
+  if (/responsible.?gaming/i.test(details)) mandatories.push("responsible gaming disclaimer strip")
+  mandatories.push("brand logo safe zone", "headline text area", "mandatory regulatory space")
+  const mandatoryNote = `Safe zones reserved for: ${mandatories.join(", ")}. No actual logos, text, or QR codes rendered in the image.`
+
+  const featuredProduct = detected.featuredProduct && detected.featuredProduct !== "Not clearly provided"
+    ? `Feature "${detected.featuredProduct}" as a supporting focal element. ` : ""
+
+  const motionNote = outputMode === "Motion"
+    ? "Composition designed for animation — layered depth, foreground/midground/background separation, elements that can move independently. "
+    : ""
+
+  const refNote = referenceNotes
+    ? `\nReference direction from requestor: ${referenceNotes}` : ""
+
+  const prompt = [
+    `${intent.subject} for ${brand} — ${outputMode.toLowerCase()} graphic design.`,
+    `Brand palette: ${dna.palette}.`,
+    `Visual aesthetic: ${dna.aesthetic}.`,
+    `Style: ${dna.style}.`,
+    `Brand motifs available to incorporate: ${dna.motifs}.`,
+    `Layout: ${intent.layout}.`,
+    featuredProduct,
+    vd.mood ? `Campaign mood: ${vd.mood}.` : "",
+    motionNote,
+    mandatoryNote,
+    arHint,
+  ].filter(Boolean).join(" ").replace(/\s{2,}/g, " ").trim()
 
   return [
     `PROJECT: ${title}`,
     `BRAND: ${brand} | TYPE: ${outputMode}`,
-    ``,
-    `BRIEF:`,
-    details || "(no brief provided)",
-    ``,
-    `DELIVERABLES:`,
-    deliverableLines,
-    vd.mood || vd.colorBalance || vd.coreIdea ? [
-      ``,
-      `DIRECTION:`,
-      vd.mood ? `Mood — ${vd.mood}` : null,
-      vd.colorBalance ? `Color — ${vd.colorBalance}` : null,
-      vd.coreIdea ? `Core idea — ${vd.coreIdea}` : null,
-    ].filter(Boolean).join("\n") : null,
-    referenceNotes ? `\nREFERENCE NOTES:\n${referenceNotes}` : null,
+    deliverables.length ? `DELIVERABLES: ${deliverables.map(d => d.label + (d.width ? ` (${d.width}×${d.height} ${d.unit})` : "")).join(", ")}` : null,
     ``,
     `━━━ PROMPT ━━━`,
-    aiPromptParts,
+    prompt,
+    refNote || null,
   ].filter(l => l !== null).join("\n")
 }
 
