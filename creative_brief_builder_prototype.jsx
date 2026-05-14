@@ -13,6 +13,14 @@ const DELIVERABLE_STATUSES = ["To Do", "In Progress", "For Review", "For Revisio
 const COMMENT_TYPES = ["General", "Clarification", "Revision", "Approval"];
 const ASSET_PROMPT_TYPES = ["Key Visual", "Background", "Character / Mascot", "3D Object", "Scene Reference"];
 
+const ASSET_TYPE_META = {
+  "Key Visual":         { icon: "🎨", desc: "Full KV layout — product focal point, brand, QR, and mandatories" },
+  "Background":         { icon: "🌫️", desc: "Clean background plate only — no logos, text, or QR code" },
+  "Character / Mascot": { icon: "🎭", desc: "Isolated character on a plain background, ready to cut out" },
+  "3D Object":          { icon: "📦", desc: "Polished 3D asset, front-facing with simple lighting" },
+  "Scene Reference":    { icon: "🎬", desc: "Mood and environment reference — not the final ad layout" },
+};
+
 
 const REQUESTORS = [
   "Marketing Manager",
@@ -128,6 +136,24 @@ const css = `
   .asset-type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 10px 0; }
   .asset-type { border: 1px solid #d4d4d8; border-radius: 12px; padding: 9px 10px; background: white; cursor: pointer; font-weight: 850; font-size: 13px; }
   .asset-type.active { background: #18181b; color: white; border-color: #18181b; }
+  .asset-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+  .asset-card { border: 1.5px solid #e4e4e7; border-radius: 14px; padding: 12px 14px; background: white; cursor: pointer; text-align: left; transition: border-color .12s, background .12s; width: 100%; }
+  .asset-card:hover { border-color: #a78bfa; background: #faf8ff; }
+  .asset-card.active { border-color: #7c3aed; background: #f5f3ff; }
+  .asset-card-icon { font-size: 22px; margin-bottom: 6px; display: block; line-height: 1; }
+  .asset-card-name { font-size: 13px; font-weight: 850; color: #18181b; display: block; margin-bottom: 3px; }
+  .asset-card-desc { font-size: 11px; color: #71717a; display: block; line-height: 1.45; }
+  .asset-card.active .asset-card-name { color: #5b21b6; }
+  .asset-card.active .asset-card-desc { color: #7c3aed; }
+  .prompt-block { background: #1e1b2e; color: #cdd6f4; border-radius: 14px; padding: 16px 18px; font-size: 13px; line-height: 1.7; max-height: 240px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; font-family: inherit; margin: 10px 0 8px; border: 1px solid #2d2b3d; }
+  .prompt-copy-btn { width: 100%; border: 0; border-radius: 12px; padding: 11px; font-size: 14px; font-weight: 850; cursor: pointer; background: #7c3aed; color: white; transition: background .15s; }
+  .prompt-copy-btn:hover { background: #6d28d9; }
+  .prompt-copy-btn.copied { background: #059669; }
+  .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .kv-item { background: #fafafa; border: 1px solid #f1f1f1; border-radius: 10px; padding: 10px 12px; }
+  .kv-full { grid-column: 1 / -1; }
+  .kv-label { font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .06em; color: #71717a; display: block; margin-bottom: 4px; }
+  .kv-value { font-size: 13px; color: #18181b; line-height: 1.5; }
   .activity-item { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-bottom: 1px solid #f1f1f1; font-size: 13px; }
   .del-composer { display: flex; flex-direction: column; gap: 6px; }
   .del-input-row { display: flex; gap: 6px; align-items: center; }
@@ -162,13 +188,30 @@ const css = `
   .del-inline-dims { display: flex; gap: 4px; align-items: center; margin-top: 4px; }
   .del-inline-dims input { width: 64px; padding: 4px 6px; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 12px; }
   .del-inline-dims select { padding: 4px 6px; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 12px; width: auto; }
-  .del-detect-btn { font-size: 12px; padding: 3px 8px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 5px; cursor: pointer; color: #374151; }
+  .del-detect-btn { font-size: 12px; padding: 5px 10px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 10px; cursor: pointer; color: #374151; white-space: nowrap; }
   .del-detect-btn:hover { background: #e5e7eb; }
-  .del-confirm-strip { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 12px; margin-top: 8px; }
-  .del-confirm-strip h5 { margin: 0 0 8px; font-size: 12px; color: #15803d; font-weight: 600; }
-  .del-confirm-item { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 13px; }
-  .del-confirm-item label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: normal; text-transform: none; letter-spacing: normal; color: #18181b; margin-bottom: 0; }
-  .del-confirm-item input[type=checkbox] { width: auto; }
+  .del-composer-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .del-name-wrap { position: relative; flex: 1 1 180px; min-width: 0; }
+  .del-name-input { width: 100%; padding: 9px 12px; border: 1px solid #d4d4d8; border-radius: 12px; font-size: 14px; outline: none; background: white; color: #18181b; }
+  .del-name-input:focus { border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139,92,246,.12); }
+  .del-dim-input { width: 62px; padding: 9px 10px; border: 1px solid #d4d4d8; border-radius: 12px; font-size: 14px; outline: none; text-align: center; background: white; color: #18181b; }
+  .del-dim-input:focus { border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139,92,246,.12); }
+  .del-dim-sep { color: #71717a; font-size: 14px; flex-shrink: 0; }
+  .del-unit-select { padding: 9px 10px; border: 1px solid #d4d4d8; border-radius: 12px; font-size: 14px; outline: none; background: white; color: #18181b; width: auto; }
+  .del-unit-select:focus { border-color: #8b5cf6; }
+  .del-match-hint { font-size: 12px; color: #6d28d9; background: #f5f3ff; border: 1px solid #ede9fe; border-radius: 8px; padding: 6px 10px; }
+  .del-cards { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .del-card { background: white; border: 1px solid #e4e4e7; border-radius: 14px; padding: 14px 16px; }
+  .del-card-main { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .del-card-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+  .del-card-name { font-size: 14px; font-weight: 800; color: #18181b; }
+  .del-card-size { font-size: 13px; color: #71717a; }
+  .del-card-notes-preview { font-size: 12px; color: #52525b; margin: 2px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-style: italic; }
+  .del-card-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+  .del-card-btn { border: 1px solid #e4e4e7; background: white; color: #3f3f46; font-size: 12px; font-weight: 700; border-radius: 8px; padding: 5px 10px; cursor: pointer; white-space: nowrap; }
+  .del-card-btn:hover { background: #f4f4f5; border-color: #a1a1aa; }
+  .del-card-btn.danger { color: #991b1b; border-color: #fecaca; }
+  .del-card-btn.danger:hover { background: #fef2f2; }
   .del-confirm-actions { display: flex; gap: 6px; margin-top: 8px; }
   .del-confirm-add { padding: 5px 12px; background: #16a34a; color: #fff; border: none; border-radius: 5px; font-size: 12px; cursor: pointer; }
   .del-confirm-dismiss { padding: 5px 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 12px; cursor: pointer; }
@@ -511,66 +554,59 @@ function RequestPreview({ form, ai, onReview }) {
 }
 
 function DeliverableComposer({ form, setForm }) {
-  const [input, setInput] = React.useState("")
-  const [suggestions, setSuggestions] = React.useState([])
-  const [detectedItems, setDetectedItems] = React.useState(null)
-  const [selectedDetected, setSelectedDetected] = React.useState([])
-  const [expandedNotes, setExpandedNotes] = React.useState({})
-  const [expandedDims, setExpandedDims] = React.useState({})
-  const [openMenu, setOpenMenu] = React.useState(null)
-  const inputRef = React.useRef(null)
+  const [draft, setDraft] = React.useState({ name: "", width: "", height: "", unit: "px" })
+  const [nameSuggestions, setNameSuggestions] = React.useState([])
+  const [showSuggestions, setShowSuggestions] = React.useState(false)
+  const [editingId, setEditingId] = React.useState(null)
+  const [openNotesId, setOpenNotesId] = React.useState(null)
+  const [detectMsg, setDetectMsg] = React.useState("")
+  const nameRef = React.useRef(null)
 
-  React.useEffect(() => {
-    if (!openMenu) return
-    function handleClickOutside() { setOpenMenu(null) }
-    document.addEventListener("click", handleClickOutside)
-    return () => document.removeEventListener("click", handleClickOutside)
-  }, [openMenu])
-
-  const briefText = form.requestDetails || ""
-  const hasBriefText = briefText.trim().length > 0
   const deliverables = form.deliverables || []
+  const matchedPreset = matchPresetBySize(draft.width, draft.height, draft.unit)
+  const draftNameLower = draft.name.trim().toLowerCase()
+  const showMatchHint = !!(matchedPreset && draftNameLower && draftNameLower !== matchedPreset.label.toLowerCase())
+  const showAutoNameHint = !draft.name.trim() && !!(draft.width && draft.height)
+  const hasBriefText = (form.requestDetails || "").trim().length > 0
 
-  function handleInput(e) {
+  function handleNameChange(e) {
     const val = e.target.value
-    setInput(val)
-    if (!val.trim()) { setSuggestions([]); return }
-    const lower = val.toLowerCase()
-    const matched = MATERIAL_PRESETS.filter(p =>
-      p.label.toLowerCase().includes(lower) ||
-      `${p.width}x${p.height}`.includes(lower) ||
-      `${p.width}×${p.height}`.includes(lower)
-    ).slice(0, 6)
-    setSuggestions(matched)
-  }
-
-  function addFromPreset(preset) {
-    const newDel = normalizeDeliverable({ ...preset, source: "preset" })
-    setForm(prev => ({ ...prev, deliverables: [...prev.deliverables, newDel] }))
-    setInput("")
-    setSuggestions([])
-    inputRef.current?.focus()
-  }
-
-  function addCustom() {
-    if (!input.trim()) return
-    const dimMatch = input.match(/^(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*(px|mm|cm|in|ft)?$/i)
-    let newDel
-    if (dimMatch) {
-      const [, w, h, unit] = dimMatch
-      newDel = normalizeDeliverable({ label: `${w}×${h} ${unit || "px"}`, width: w, height: h, unit: unit || "px", source: "custom" })
+    setDraft(prev => ({ ...prev, name: val }))
+    setDetectMsg("")
+    if (val.trim()) {
+      const q = val.toLowerCase()
+      const matched = MATERIAL_PRESETS.filter(p =>
+        p.label.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)
+      ).slice(0, 6)
+      setNameSuggestions(matched)
+      setShowSuggestions(matched.length > 0)
     } else {
-      newDel = normalizeDeliverable({ label: input.trim(), source: "custom" })
+      setNameSuggestions([])
+      setShowSuggestions(false)
     }
-    setForm(prev => ({ ...prev, deliverables: [...prev.deliverables, newDel] }))
-    setInput("")
-    setSuggestions([])
-    inputRef.current?.focus()
   }
 
-  function handleKeyDown(e) {
-    if (e.key === "Enter") { e.preventDefault(); addCustom() }
-    if (e.key === "Escape") setSuggestions([])
+  function selectPreset(preset) {
+    setDraft({ name: preset.label, width: preset.width, height: preset.height, unit: preset.unit })
+    setNameSuggestions([])
+    setShowSuggestions(false)
+  }
+
+  function handleAdd() {
+    const label = draft.name.trim() || ((draft.width && draft.height) ? "Custom Size" : "")
+    if (!label) return
+    const newDel = normalizeDeliverable({
+      label,
+      width: draft.width,
+      height: draft.height,
+      unit: draft.unit,
+      presetId: matchedPreset?.id || null,
+      source: draft.name.trim() ? "custom" : "preset",
+    })
+    setForm(prev => ({ ...prev, deliverables: [...prev.deliverables, newDel] }))
+    setDraft({ name: "", width: "", height: "", unit: "px" })
+    setDetectMsg("")
+    nameRef.current?.focus()
   }
 
   function removeDeliverable(id) {
@@ -581,131 +617,135 @@ function DeliverableComposer({ form, setForm }) {
     setForm(prev => ({ ...prev, deliverables: prev.deliverables.map(d => d.id === id ? { ...d, ...patch } : d) }))
   }
 
-  function toggleNotes(id) {
-    setExpandedNotes(prev => ({ ...prev, [id]: !prev[id] }))
-  }
-
-  function toggleDims(id) {
-    setExpandedDims(prev => ({ ...prev, [id]: !prev[id] }))
-  }
-
   function handleDetect() {
-    const found = detectDeliverablesFromText(briefText)
+    const found = detectDeliverablesFromText(form.requestDetails || "")
     const existingLabels = new Set(deliverables.map(d => d.label.toLowerCase()))
     const novel = found.filter(f => !existingLabels.has(f.label.toLowerCase()))
-    if (!novel.length) { alert("No new deliverables detected in the brief."); return }
-    setDetectedItems(novel)
-    setSelectedDetected(novel.map(d => d.id))
+    if (!novel.length) {
+      setDetectMsg("No new deliverables detected in the brief.")
+      return
+    }
+    setForm(prev => ({ ...prev, deliverables: [...prev.deliverables, ...novel] }))
+    setDetectMsg(`${novel.length} deliverable${novel.length > 1 ? "s" : ""} added from brief.`)
   }
-
-  function confirmDetected() {
-    const toAdd = detectedItems.filter(d => selectedDetected.includes(d.id))
-    setForm(prev => ({ ...prev, deliverables: [...prev.deliverables, ...toAdd] }))
-    setDetectedItems(null)
-    setSelectedDetected([])
-  }
-
-  const STATUSES = ["To Do", "In Progress", "For Review", "For Revision", "Done"]
 
   return (
     <div className="del-composer">
+      <div style={{ position: "relative" }}>
+        <div className="del-composer-row">
+          <div className="del-name-wrap">
+            <input
+              ref={nameRef}
+              className="del-name-input"
+              value={draft.name}
+              onChange={handleNameChange}
+              onFocus={() => { if (nameSuggestions.length) setShowSuggestions(true) }}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAdd() } }}
+              placeholder="Search or name deliverable..."
+            />
+            {showSuggestions && nameSuggestions.length > 0 && (
+              <div className="del-suggestions">
+                {nameSuggestions.map(p => (
+                  <div key={p.id} className="del-suggestion-item" onMouseDown={() => selectPreset(p)}>
+                    <span>{p.label}</span>
+                    <span className="del-suggestion-dim">{p.width !== "N/A" ? `${p.width}×${p.height} ${p.unit}` : "N/A"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <input
+            className="del-dim-input"
+            value={draft.width}
+            onChange={e => { setDraft(prev => ({ ...prev, width: e.target.value })); setDetectMsg("") }}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAdd() } }}
+            placeholder="W"
+          />
+          <span className="del-dim-sep">×</span>
+          <input
+            className="del-dim-input"
+            value={draft.height}
+            onChange={e => { setDraft(prev => ({ ...prev, height: e.target.value })); setDetectMsg("") }}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAdd() } }}
+            placeholder="H"
+          />
+          <select
+            className="del-unit-select"
+            value={draft.unit}
+            onChange={e => setDraft(prev => ({ ...prev, unit: e.target.value }))}
+          >
+            {["px","mm","cm","in","ft","N/A"].map(u => <option key={u}>{u}</option>)}
+          </select>
+          <button className="btn purple" type="button" onClick={handleAdd} style={{ fontSize: 13, padding: "9px 14px", whiteSpace: "nowrap" }}>+ Add Deliverable</button>
+          {hasBriefText && (
+            <button className="del-detect-btn" type="button" onClick={handleDetect}>Detect from brief</button>
+          )}
+        </div>
+      </div>
+
+      {showMatchHint && (
+        <div className="del-match-hint">Matches preset: <strong>{matchedPreset.label}</strong></div>
+      )}
+      {showAutoNameHint && (
+        <div className="del-match-hint" style={{ color: "#92400e", background: "#fffbeb", borderColor: "#fde68a" }}>
+          Will be named <strong>"Custom Size"</strong> — add a name to override
+        </div>
+      )}
+      {detectMsg && (
+        <div className="del-match-hint" style={{ color: "#374151", background: "#f9fafb", borderColor: "#e5e7eb" }}>{detectMsg}</div>
+      )}
+
       {deliverables.length > 0 && (
-        <div className="del-list">
+        <div className="del-cards">
           {deliverables.map(d => (
-            <div key={d.id}>
-              <div className="del-row">
-                <span className="del-row-label">{d.label}</span>
-                {d.width && d.height && d.unit !== "N/A" && (
-                  <span className="del-row-dim">{d.width}×{d.height} {d.unit}</span>
-                )}
-                <select
-                  className={`del-status-select ${statusPillColor(d.status)}`}
-                  value={d.status || "To Do"}
-                  onChange={e => updateDeliverable(d.id, { status: e.target.value })}
-                >
-                  {STATUSES.map(s => <option key={s}>{s}</option>)}
-                </select>
-                <div className="del-menu-wrap">
-                  <button className="del-menu-btn" type="button" onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === d.id ? null : d.id) }}>···</button>
-                  {openMenu === d.id && (
-                    <div className="del-dropdown">
-                      <button className="del-dropdown-item" type="button" onClick={() => { toggleDims(d.id); setOpenMenu(null) }}>Edit dimensions</button>
-                      <button className="del-dropdown-item" type="button" onClick={() => { toggleNotes(d.id); setOpenMenu(null) }}>Notes</button>
-                      <button className="del-dropdown-item danger" type="button" onClick={() => { removeDeliverable(d.id); setOpenMenu(null) }}>Remove</button>
-                    </div>
+            <div key={d.id} className="del-card">
+              <div className="del-card-main">
+                <div className="del-card-info">
+                  <span className="del-card-name">{d.label}</span>
+                  {d.width && d.height && d.unit !== "N/A" && (
+                    <span className="del-card-size">{d.width} × {d.height} {d.unit}</span>
                   )}
+                  {d.notes && <p className="del-card-notes-preview">{d.notes}</p>}
+                </div>
+                <div className="del-card-actions">
+                  <button className="del-card-btn" type="button"
+                    onClick={() => setOpenNotesId(openNotesId === d.id ? null : d.id)}>
+                    Notes
+                  </button>
+                  <button className="del-card-btn" type="button"
+                    onClick={() => setEditingId(editingId === d.id ? null : d.id)}>
+                    Edit
+                  </button>
+                  <button className="del-card-btn danger" type="button"
+                    onClick={() => removeDeliverable(d.id)}>
+                    Remove
+                  </button>
                 </div>
               </div>
-              {expandedDims[d.id] && (
-                <div className="del-inline-dims">
+              {editingId === d.id && (
+                <div className="del-inline-dims" style={{ marginTop: 10 }}>
                   <input placeholder="W" value={d.width} onChange={e => updateDeliverable(d.id, { width: e.target.value })} />
                   <span>×</span>
                   <input placeholder="H" value={d.height} onChange={e => updateDeliverable(d.id, { height: e.target.value })} />
                   <select value={d.unit || "px"} onChange={e => updateDeliverable(d.id, { unit: e.target.value })}>
                     {["px","mm","cm","in","ft","N/A"].map(u => <option key={u}>{u}</option>)}
                   </select>
+                  <button type="button" className="del-card-btn" onClick={() => setEditingId(null)}>Done</button>
                 </div>
               )}
-              {expandedNotes[d.id] && (
+              {openNotesId === d.id && (
                 <textarea
                   className="del-notes-area"
                   placeholder="Specific notes for this size only..."
                   value={d.notes || ""}
                   onChange={e => updateDeliverable(d.id, { notes: e.target.value })}
+                  autoFocus
+                  style={{ marginTop: 10 }}
                 />
               )}
             </div>
           ))}
-        </div>
-      )}
-
-      <div style={{ position: "relative" }}>
-        <div className="del-input-row">
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={handleInput}
-            onKeyDown={handleKeyDown}
-            placeholder="Type name or size, e.g. A4, 1080×1350..."
-          />
-          <button className="del-add-btn" type="button" onClick={addCustom}>+ Add</button>
-          {hasBriefText && (
-            <button className="del-detect-btn" type="button" onClick={handleDetect}>Detect from brief</button>
-          )}
-        </div>
-        {suggestions.length > 0 && (
-          <div className="del-suggestions">
-            {suggestions.map(p => (
-              <div key={p.id} className="del-suggestion-item" onClick={() => addFromPreset(p)}>
-                <span>{p.label}</span>
-                <span className="del-suggestion-dim">{p.width}×{p.height} {p.unit}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {detectedItems && (
-        <div className="del-confirm-strip">
-          <h5>Detected deliverables:</h5>
-          {detectedItems.map(d => (
-            <div key={d.id} className="del-confirm-item">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={selectedDetected.includes(d.id)}
-                  onChange={e => setSelectedDetected(prev =>
-                    e.target.checked ? [...prev, d.id] : prev.filter(id => id !== d.id)
-                  )}
-                />
-                {d.label}{d.width && d.unit !== "N/A" ? ` — ${d.width}×${d.height} ${d.unit}` : ""}
-              </label>
-            </div>
-          ))}
-          <div className="del-confirm-actions">
-            <button className="del-confirm-add" type="button" onClick={confirmDetected}>Add Selected</button>
-            <button className="del-confirm-dismiss" type="button" onClick={() => setDetectedItems(null)}>Dismiss</button>
-          </div>
         </div>
       )}
     </div>
@@ -852,6 +892,8 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
   const [addingDeliverable, setAddingDeliverable] = useState(false);
   const [newDelInput, setNewDelInput] = useState("");
   const [newDelSuggestions, setNewDelSuggestions] = useState([]);
+  const [modalDelMenu, setModalDelMenu] = useState(null);
+  const [copied, setCopied] = useState(false);
   if (!request) return null;
   const ai = request.ai || generateOutput(request.form);
   const meta = deadlineMeta(request.form.deadline);
@@ -973,15 +1015,26 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
     setCommentType("General");
   };
 
+  function copyPrompt() {
+    navigator.clipboard?.writeText(assetPrompt).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
     <div className="modal-bg">
       <div className="modal large">
         <div className="modal-header">
           <div>
-            <h2 style={{ margin: 0 }}>{request.form.title || "Untitled Request"}</h2>
-            <div className="muted small">{request.form.brand} • {request.form.outputMode} • {formatDateTime(request.createdAt)} → {formatDate(request.form.deadline)} • {meta.label}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
+              <h2 style={{ margin: 0 }}>{request.form.title || "Untitled Request"}</h2>
+              <span className={`pill ${meta.badge}`}>{request.status}</span>
+              {meta.days !== null && <span className="muted small">{meta.days < 0 ? `${Math.abs(meta.days)}d overdue` : meta.days === 0 ? "Due today" : `${meta.days}d left`}</span>}
+            </div>
+            <div className="muted small">{request.form.brand} • {request.form.outputMode} • Submitted {formatDateTime(request.createdAt)} • Deadline {formatDate(request.form.deadline)}</div>
           </div>
-          <button className="btn ghost" onClick={onClose}>×</button>
+          <button className="btn ghost" onClick={onClose} style={{ fontSize: 20, lineHeight: 1 }}>×</button>
         </div>
         <div className="modal-body">
           <div className="detail-grid">
@@ -1044,11 +1097,15 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
                             <option key={s}>{s}</option>
                           ))}
                         </select>
-                        <button className="del-menu-btn" type="button" onClick={() => {
-                          const action = window.prompt("n = toggle notes  |  r = remove");
-                          if (action === "n") setDelExpandedNotes(prev => ({ ...prev, [d.id]: !prev[d.id] }));
-                          if (action === "r") removeModalDeliverable(d.id);
-                        }}>···</button>
+                        <div className="del-menu-wrap">
+                          <button className="del-menu-btn" type="button" onClick={(e) => { e.stopPropagation(); setModalDelMenu(modalDelMenu === d.id ? null : d.id) }}>···</button>
+                          {modalDelMenu === d.id && (
+                            <div className="del-dropdown">
+                              <button className="del-dropdown-item" type="button" onClick={() => { setDelExpandedNotes(prev => ({ ...prev, [d.id]: !prev[d.id] })); setModalDelMenu(null) }}>Notes</button>
+                              <button className="del-dropdown-item danger" type="button" onClick={() => { removeModalDeliverable(d.id); setModalDelMenu(null) }}>Remove</button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       {delExpandedNotes[d.id] && (
                         <textarea
@@ -1078,20 +1135,57 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
 
               <div className="info-box">
                 <div className="field-label">Key Visual Direction</div>
-                <p><strong>Mood:</strong> {ai.visualDirection?.mood}</p>
-                <p><strong>Color Balance:</strong> {ai.visualDirection?.colorBalance}</p>
-                <p><strong>Core Idea:</strong> {ai.visualDirection?.coreIdea}</p>
-                <div>{ai.visualDirection?.imagery?.map((tag) => <span className="pill" key={tag} style={{ margin: 3 }}>{tag}</span>)}</div>
+                <div className="kv-grid">
+                  <div className="kv-item">
+                    <span className="kv-label">Mood</span>
+                    <span className="kv-value">{ai.visualDirection?.mood || "—"}</span>
+                  </div>
+                  <div className="kv-item">
+                    <span className="kv-label">Color Balance</span>
+                    <span className="kv-value">{ai.visualDirection?.colorBalance || "—"}</span>
+                  </div>
+                  <div className="kv-item kv-full">
+                    <span className="kv-label">Core Idea</span>
+                    <span className="kv-value">{ai.visualDirection?.coreIdea || "—"}</span>
+                  </div>
+                </div>
+                {ai.visualDirection?.imagery?.length > 0 && (
+                  <div style={{ marginTop: 10 }}>
+                    {ai.visualDirection.imagery.map((tag) => <span className="pill" key={tag} style={{ margin: "3px 4px 3px 0" }}>{tag}</span>)}
+                  </div>
+                )}
               </div>
 
               <div className="info-box">
                 <div className="field-label">AI Asset Prompt Generator</div>
-                <p className="muted small" style={{ marginTop: 0 }}>Generate copy-paste prompts for AI asset creation, not final artwork.</p>
-                <div className="asset-type-grid">
-                  {ASSET_PROMPT_TYPES.map((type) => <button key={type} type="button" className={`asset-type ${assetType === type ? "active" : ""}`} onClick={() => setAssetType(type)}>{type}</button>)}
+                <p className="muted small" style={{ marginTop: 0, marginBottom: 4 }}>
+                  Pick an asset type — get a copy-paste prompt for Midjourney, Firefly, or DALL-E.
+                </p>
+                <div className="asset-cards">
+                  {ASSET_PROMPT_TYPES.map((type) => {
+                    const meta = ASSET_TYPE_META[type] || {}
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        className={`asset-card ${assetType === type ? "active" : ""}`}
+                        onClick={() => setAssetType(type)}
+                      >
+                        <span className="asset-card-icon">{meta.icon}</span>
+                        <span className="asset-card-name">{type}</span>
+                        <span className="asset-card-desc">{meta.desc}</span>
+                      </button>
+                    )
+                  })}
                 </div>
-                <textarea readOnly style={{ minHeight: 190 }} value={assetPrompt} />
-                <button className="btn secondary" onClick={() => navigator.clipboard?.writeText(assetPrompt)}>Copy asset prompt</button>
+                <div className="prompt-block">{assetPrompt}</div>
+                <button
+                  className={`prompt-copy-btn${copied ? " copied" : ""}`}
+                  type="button"
+                  onClick={copyPrompt}
+                >
+                  {copied ? "✓ Copied to clipboard" : "Copy prompt"}
+                </button>
               </div>
 
               <div className="info-box">
