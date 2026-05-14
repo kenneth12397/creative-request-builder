@@ -1454,7 +1454,7 @@ export default function CreativeBriefBuilderPrototype() {
               <textarea value={form.requestDetails} onChange={(e) => update("requestDetails", e.target.value)} placeholder={`Example:\nput KonKon's QR code.\nfeature SuperAce by JILI.\nput PAGCOR mandatories.\nshowcase LakiWin logo.`} style={{ minHeight: 155 }} />
             </Section>
 
-            <Section n="3" title="What size/s do you need?">
+            <Section n="3" title="Sizes">
               <DeliverableComposer form={form} setForm={setForm} />
             </Section>
 
