@@ -1441,16 +1441,20 @@ export default function CreativeBriefBuilderPrototype() {
         <div className="card"><div className="card-body"><h1 style={{ marginTop: 0 }}>Create a request</h1><p className="muted">Request details come first. Add deliverables after, then use per-deliverable notes only when a material needs special handling.</p></div></div>
         <div className="grid">
           <main>
-            <Section n="1" title="Project basics">
+            <Section n="1" title="Request Info">
               <div className="row">
-                <Field label="Project title"><input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="Example: Monitor Topper for KonKon" /></Field>
-                <Field label="Brand / account"><select value={form.brand} onChange={(e) => update("brand", e.target.value)}><option>LakiWin</option><option>VikingFunLand</option><option>RAC PH</option><option>Other Brand</option></select></Field>
+                <Field label="Project title"><input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="e.g. Monitor Topper — KonKon Promo" /></Field>
+                <Field label="Brand"><select value={form.brand} onChange={(e) => update("brand", e.target.value)}><option>LakiWin</option><option>VikingFunLand</option><option>RAC PH</option><option>Other Brand</option></select></Field>
               </div>
-              <Field label="Static or motion"><div className="choice-grid">{["Static", "Motion"].map((m) => <button key={m} type="button" className={`choice ${form.outputMode === m ? "active" : ""}`} onClick={() => update("outputMode", m)}>{m}</button>)}</div></Field>
+              <div className="row">
+                <Field label="Date needed"><input type="date" value={form.deadline} onChange={(e) => update("deadline", e.target.value)} /></Field>
+                <Field label="Requested by"><select value={form.requestor} onChange={(e) => update("requestor", e.target.value)}><option value="">Select requestor</option>{REQUESTORS.map((person) => <option key={person}>{person}</option>)}</select></Field>
+              </div>
+              <Field label="Output type"><div className="choice-grid">{["Static", "Motion"].map((m) => <button key={m} type="button" className={`choice ${form.outputMode === m ? "active" : ""}`} onClick={() => update("outputMode", m)}>{m}</button>)}</div></Field>
             </Section>
 
             <Section n="2" title="Request Details">
-              <p className="muted" style={{ marginTop: 0 }}>Paste all promo details, copy, mechanics, mandatories, references, and notes here.</p>
+              <p className="muted" style={{ marginTop: 0 }}>Paste all promo details, copy, mechanics, mandatories, and notes here.</p>
               <textarea value={form.requestDetails} onChange={(e) => update("requestDetails", e.target.value)} placeholder={`Example:\nput KonKon's QR code.\nfeature SuperAce by JILI.\nput PAGCOR mandatories.\nshowcase LakiWin logo.`} style={{ minHeight: 155 }} />
             </Section>
 
@@ -1460,14 +1464,6 @@ export default function CreativeBriefBuilderPrototype() {
 
             <Section n="4" title="References">
               <ReferenceUploader form={form} setForm={setForm} />
-            </Section>
-
-            <Section n="5" title="Deadline and requestor">
-              <div className="row">
-                <Field label="Date needed"><input type="date" value={form.deadline} onChange={(e) => update("deadline", e.target.value)} /></Field>
-                <Field label="Requested by"><select value={form.requestor} onChange={(e) => update("requestor", e.target.value)}><option value="">Select requestor</option>{REQUESTORS.map((person) => <option key={person}>{person}</option>)}</select></Field>
-              </div>
-              <Field label="Assign to"><select value={form.assignedTo} onChange={(e) => update("assignedTo", e.target.value)}>{DESIGNERS.map((designer) => <option key={designer}>{designer}</option>)}</select></Field>
             </Section>
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: 30 }}><button className="btn purple" onClick={openReview}>Review Request</button></div>
