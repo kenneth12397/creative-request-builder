@@ -453,6 +453,69 @@ Composition Rules:
 Keep a clear safe area for text and mandatories. Do not overload the layout. Make the main focal point readable from a distance. Adapt the KV consistently across all listed deliverables.`;
 }
 
+function buildComprehensivePrompt(form, ai) {
+  const title = form.title?.trim() || "Untitled Project"
+  const brand = form.brand || ""
+  const outputMode = form.outputMode || "Static"
+  const details = (form.requestDetails || "").trim()
+  const deliverables = form.deliverables || []
+  const referenceNotes = (form.referenceNotes || "").trim()
+  const vd = (ai && ai.visualDirection) || {}
+  const detected = (ai && ai.detected) || {}
+
+  const deliverableLines = deliverables.length
+    ? deliverables.map(d => {
+        const size = d.width && d.unit !== "N/A" ? ` — ${d.width}×${d.height} ${d.unit}` : ""
+        const note = d.notes ? ` (${d.notes})` : ""
+        return `• ${d.label}${size}${note}`
+      }).join("\n")
+    : "• No sizes specified yet"
+
+  const flags = []
+  if (/qr/i.test(details)) flags.push("QR code area")
+  if (/pagcor/i.test(details)) flags.push("PAGCOR mandatories")
+  if (/responsible.?gaming/i.test(details)) flags.push("responsible gaming disclaimer")
+  if (/logo/i.test(details)) flags.push(`${brand} logo`)
+  const safeAreas = flags.length ? flags.join(", ") : "logo, headline, and mandatory text areas"
+
+  const firstWithDims = deliverables.find(d => d.width && d.height && d.unit !== "N/A")
+  const arHint = firstWithDims ? `--ar ${firstWithDims.width}:${firstWithDims.height}` : ""
+
+  const aiPromptParts = [
+    vd.coreIdea || `Marketing creative for ${brand}`,
+    detected.featuredProduct && detected.featuredProduct !== "Not clearly provided"
+      ? `Feature ${detected.featuredProduct} as the focal point.` : null,
+    vd.mood ? vd.mood + "." : null,
+    vd.colorBalance ? vd.colorBalance + "." : null,
+    `Leave clear safe areas for: ${safeAreas}. No final ad text or logos in the generated image.`,
+    outputMode === "Motion" ? "Composition optimized for animation — avoid static-only framing." : null,
+    referenceNotes ? `Reference direction: ${referenceNotes}` : null,
+    arHint || null,
+  ].filter(Boolean).join(" ")
+
+  return [
+    `PROJECT: ${title}`,
+    `BRAND: ${brand} | TYPE: ${outputMode}`,
+    ``,
+    `BRIEF:`,
+    details || "(no brief provided)",
+    ``,
+    `DELIVERABLES:`,
+    deliverableLines,
+    vd.mood || vd.colorBalance || vd.coreIdea ? [
+      ``,
+      `DIRECTION:`,
+      vd.mood ? `Mood — ${vd.mood}` : null,
+      vd.colorBalance ? `Color — ${vd.colorBalance}` : null,
+      vd.coreIdea ? `Core idea — ${vd.coreIdea}` : null,
+    ].filter(Boolean).join("\n") : null,
+    referenceNotes ? `\nREFERENCE NOTES:\n${referenceNotes}` : null,
+    ``,
+    `━━━ PROMPT ━━━`,
+    aiPromptParts,
+  ].filter(l => l !== null).join("\n")
+}
+
 function buildAssetPrompt(form, ai, promptType) {
   const visualDirection = ai.visualDirection || {};
   const detected = ai.detected || {};
@@ -889,7 +952,7 @@ function TaskCard({ request, onOpen, onDragStart }) {
 function TaskModal({ request, setRequests, onClose, onDelete }) {
   const [commentText, setCommentText] = useState("");
   const [commentType, setCommentType] = useState("General");
-  const [assetType, setAssetType] = useState("Key Visual");
+  const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [delExpandedNotes, setDelExpandedNotes] = useState({});
   const [addingDeliverable, setAddingDeliverable] = useState(false);
   const [newDelInput, setNewDelInput] = useState("");
@@ -899,7 +962,6 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
   if (!request) return null;
   const ai = request.ai || generateOutput(request.form);
   const meta = deadlineMeta(request.form.deadline);
-  const assetPrompt = buildAssetPrompt(request.form, ai, assetType);
   const deliverables = request.form.deliverables || [];
   const doneCount = deliverables.filter((d) => d.status === "Done").length;
 
@@ -1018,7 +1080,7 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
   };
 
   function copyPrompt() {
-    navigator.clipboard?.writeText(assetPrompt).then(() => {
+    navigator.clipboard?.writeText(generatedPrompt).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -1159,35 +1221,30 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
               </div>
 
               <div className="info-box">
-                <div className="field-label">AI Asset Prompt Generator</div>
-                <p className="muted small" style={{ marginTop: 0, marginBottom: 4 }}>
-                  Pick an asset type — get a copy-paste prompt for Midjourney, Firefly, or DALL-E.
-                </p>
-                <div className="asset-cards">
-                  {ASSET_PROMPT_TYPES.map((type) => {
-                    const meta = ASSET_TYPE_META[type] || {}
-                    return (
-                      <button
-                        key={type}
-                        type="button"
-                        className={`asset-card ${assetType === type ? "active" : ""}`}
-                        onClick={() => setAssetType(type)}
-                      >
-                        <span className="asset-card-icon">{meta.icon}</span>
-                        <span className="asset-card-name">{type}</span>
-                        <span className="asset-card-desc">{meta.desc}</span>
-                      </button>
-                    )
-                  })}
+                <div className="field-label">Prompt Generator</div>
+                <div className="prompt-block" style={{ minHeight: 120 }}>
+                  {generatedPrompt || <span style={{ color: "#6b6b8a", fontStyle: "italic" }}>Click Generate to build a prompt from this request.</span>}
                 </div>
-                <div className="prompt-block">{assetPrompt}</div>
-                <button
-                  className={`prompt-copy-btn${copied ? " copied" : ""}`}
-                  type="button"
-                  onClick={copyPrompt}
-                >
-                  {copied ? "✓ Copied to clipboard" : "Copy prompt"}
-                </button>
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button
+                    className="btn purple"
+                    type="button"
+                    style={{ flex: 1 }}
+                    onClick={() => setGeneratedPrompt(buildComprehensivePrompt(request.form, ai))}
+                  >
+                    Generate
+                  </button>
+                  {generatedPrompt && (
+                    <button
+                      className={`prompt-copy-btn${copied ? " copied" : ""}`}
+                      type="button"
+                      style={{ flex: 1, marginTop: 0 }}
+                      onClick={copyPrompt}
+                    >
+                      {copied ? "✓ Copied" : "Copy"}
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="info-box">
