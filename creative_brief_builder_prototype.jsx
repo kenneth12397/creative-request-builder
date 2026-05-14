@@ -1173,40 +1173,7 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
               </div>
 
               <div className="info-box">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <div className="field-label" style={{ marginBottom: 0 }}>Deliverables</div>
-                  <button className="del-detect-btn" type="button" onClick={() => setAddingDeliverable(v => !v)}>
-                    + Add deliverable
-                  </button>
-                </div>
-
-                {addingDeliverable && (
-                  <div style={{ position: "relative", marginBottom: 8 }}>
-                    <div className="del-input-row">
-                      <input
-                        autoFocus
-                        value={newDelInput}
-                        onChange={handleNewDelInput}
-                        onKeyDown={e => {
-                          if (e.key === "Enter") addNewDeliverable(null);
-                          if (e.key === "Escape") setAddingDeliverable(false);
-                        }}
-                        placeholder="Type name or size..."
-                      />
-                      <button className="del-add-btn" type="button" onClick={() => addNewDeliverable(null)}>Add</button>
-                    </div>
-                    {newDelSuggestions.length > 0 && (
-                      <div className="del-suggestions">
-                        {newDelSuggestions.map(p => (
-                          <div key={p.id} className="del-suggestion-item" onClick={() => addNewDeliverable(p)}>
-                            <span>{p.label}</span>
-                            <span className="del-suggestion-dim">{p.width}×{p.height} {p.unit}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="field-label">Deliverables</div>
 
                 <div className="del-list">
                   {deliverables.map(d => (
@@ -1258,6 +1225,38 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
 
                 {deliverables.length === 0 && (
                   <p style={{ color: "#9ca3af", fontSize: 13, margin: "4px 0" }}>No deliverables yet.</p>
+                )}
+
+                {addingDeliverable ? (
+                  <div style={{ position: "relative", marginTop: 8 }}>
+                    <div className="del-input-row">
+                      <input
+                        autoFocus
+                        value={newDelInput}
+                        onChange={handleNewDelInput}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") addNewDeliverable(null);
+                          if (e.key === "Escape") setAddingDeliverable(false);
+                        }}
+                        placeholder="Type name or size..."
+                      />
+                      <button className="del-add-btn" type="button" onClick={() => addNewDeliverable(null)}>Add</button>
+                    </div>
+                    {newDelSuggestions.length > 0 && (
+                      <div className="del-suggestions">
+                        {newDelSuggestions.map(p => (
+                          <div key={p.id} className="del-suggestion-item" onClick={() => addNewDeliverable(p)}>
+                            <span>{p.label}</span>
+                            <span className="del-suggestion-dim">{p.width}×{p.height} {p.unit}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button className="del-detect-btn" type="button" style={{ marginTop: 8, width: "100%", justifyContent: "center" }} onClick={() => setAddingDeliverable(true)}>
+                    + Add deliverable
+                  </button>
                 )}
               </div>
 
