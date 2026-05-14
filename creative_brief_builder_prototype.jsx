@@ -88,6 +88,8 @@ const css = `
   .choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
   .choice { text-align: left; border: 1px solid #d4d4d8; border-radius: 14px; padding: 13px; background: #fff; cursor: pointer; font-weight: 850; }
   .choice.active { background: #18181b; color: white; border-color: #18181b; }
+  .choice-static.active { background: #2563eb; border-color: #2563eb; }
+  .choice-motion.active { background: #7c3aed; border-color: #7c3aed; }
   .composer { border: 1px dashed #d4d4d8; border-radius: 16px; background: #fbfbfd; padding: 12px; }
   .suggestions { display: grid; gap: 8px; margin-top: 10px; }
   .suggestion { border: 1px solid #e4e4e7; border-radius: 12px; background: white; padding: 10px; display: flex; justify-content: space-between; gap: 10px; align-items: center; cursor: pointer; text-align: left; }
@@ -1450,7 +1452,7 @@ export default function CreativeBriefBuilderPrototype() {
                 <Field label="Date needed"><input type="date" value={form.deadline} onChange={(e) => update("deadline", e.target.value)} /></Field>
                 <Field label="Requested by"><select value={form.requestor} onChange={(e) => update("requestor", e.target.value)}><option value="">Select requestor</option>{REQUESTORS.map((person) => <option key={person}>{person}</option>)}</select></Field>
               </div>
-              <Field label="Output type"><div className="choice-grid">{["Static", "Motion"].map((m) => <button key={m} type="button" className={`choice ${form.outputMode === m ? "active" : ""}`} onClick={() => update("outputMode", m)}>{m}</button>)}</div></Field>
+              <Field label="Output type"><div className="choice-grid">{["Static", "Motion"].map((m) => <button key={m} type="button" className={`choice choice-${m.toLowerCase()} ${form.outputMode === m ? "active" : ""}`} onClick={() => update("outputMode", m)}>{m}</button>)}</div></Field>
             </Section>
 
             <Section n="2" title="Request Details">
