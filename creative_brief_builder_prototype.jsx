@@ -1458,8 +1458,7 @@ export default function CreativeBriefBuilderPrototype() {
               <DeliverableComposer form={form} setForm={setForm} />
             </Section>
 
-            <Section n="4" title="Visual references / moodboard" optional>
-              <p className="muted" style={{ marginTop: 0 }}>Optional. Use this when requestors have screenshots, pegs, or downloaded references.</p>
+            <Section n="4" title="References">
               <ReferenceUploader form={form} setForm={setForm} />
             </Section>
 
