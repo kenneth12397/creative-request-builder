@@ -781,7 +781,9 @@ function ReferenceUploader({ form, setForm }) {
         {form.referenceImages.slice(0, 5).map((img) => <img className="thumb" src={img.src} alt={img.name} key={img.id} />)}
         {form.referenceImages.length > 5 && <span className="pill">+{form.referenceImages.length - 5}</span>}
       </div>}
-      <Field label="Reference notes"><textarea value={form.referenceNotes} onChange={(e) => setForm((prev) => ({ ...prev, referenceNotes: e.target.value }))} placeholder="What should we borrow from the references? Example: Use layout and hierarchy only. Keep colors LakiWin-branded." /></Field>
+      <div style={{ marginTop: 16 }}>
+        <Field label="Reference notes"><textarea value={form.referenceNotes} onChange={(e) => setForm((prev) => ({ ...prev, referenceNotes: e.target.value }))} placeholder="What should we borrow from the references? Example: Use layout and hierarchy only. Keep colors LakiWin-branded." /></Field>
+      </div>
 
       {open && <div className="modal-bg">
         <div className="modal">
