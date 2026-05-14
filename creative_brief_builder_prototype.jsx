@@ -1169,7 +1169,26 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
             <main>
               <div className="info-box">
                 <div className="field-label">AI Project Brief</div>
-                <p style={{ marginBottom: 0 }}>{ai.brief}</p>
+                <div style={{ fontSize: 13, color: "#71717a", marginBottom: 8 }}>
+                  {request.form.outputMode} · {request.form.brand}{request.form.requestor ? ` · Requested by ${request.form.requestor}` : ""}
+                </div>
+                {textLines(request.form.requestDetails).length > 0 ? (
+                  <div style={{ marginBottom: 10 }}>
+                    {textLines(request.form.requestDetails).map((line, i) => (
+                      <div key={i} style={{ display: "flex", gap: 8, marginBottom: 5, lineHeight: 1.5 }}>
+                        <span style={{ color: "#9ca3af", flexShrink: 0, marginTop: 1 }}>•</span>
+                        <span>{line}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ color: "#9ca3af", margin: "0 0 10px" }}>No brief details provided.</p>
+                )}
+                {request.form.deliverables?.length > 0 && (
+                  <div style={{ fontSize: 12, color: "#71717a", borderTop: "1px solid #f3f4f6", paddingTop: 8 }}>
+                    Adapt across: {request.form.deliverables.map(d => `${d.label}${d.width && d.unit !== "N/A" ? ` (${d.width}×${d.height} ${d.unit})` : ""}`).join(", ")}
+                  </div>
+                )}
               </div>
 
               <div className="info-box">
