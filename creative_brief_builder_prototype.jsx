@@ -700,25 +700,6 @@ function readImageFiles(fileList, existing = []) {
   }))).then((items) => items.filter(Boolean));
 }
 
-function RequestPreview({ form, ai, onReview }) {
-  const missing = getMissing(form);
-  const meta = deadlineMeta(form.deadline);
-  const output = ai || generateOutput(form);
-  return (
-    <div className="card sticky">
-      <div className="card-header">Request Preview</div>
-      <div className="card-body">
-        <div className="field"><div className="field-label">Project</div><strong>{form.title || "—"}</strong></div>
-        <div className="field"><div className="field-label">Brand / Type</div><span className="pill purple">{form.brand}</span> <span className="pill blue">{form.outputMode}</span></div>
-        <div className="field"><div className="field-label">Requestor Notes</div><p style={{ marginTop: 0 }}>{summarizeRequestDetails(form)}</p></div>
-        <div className="field"><div className="field-label">Deliverables</div>{form.deliverables.length ? form.deliverables.map((d) => <div key={d.id} className="small">• {d.label} — {formatSize(d)}</div>) : <div className="muted small">No deliverables added.</div>}</div>
-        <div className="field"><div className="field-label">Schedule</div><span className={`pill ${meta.badge}`}>{meta.label}</span> <span className="small muted">Due {formatDate(form.deadline)}</span></div>
-        <div className="field"><div className="field-label">Missing / Needs Confirmation</div>{missing.length ? missing.map((m) => <div className="warning" key={m}>{m}</div>) : output.missing.map((m) => <div className="success" key={m}>{m}</div>)}</div>
-        <button className="btn purple" style={{ width: "100%" }} onClick={onReview}>Review Request</button>
-      </div>
-    </div>
-  );
-}
 
 function DeliverableComposer({ form, setForm }) {
   const [draft, setDraft] = React.useState({ name: "", width: "", height: "", unit: "px" })
@@ -1794,8 +1775,7 @@ export default function CreativeBriefBuilderPrototype() {
 
       {view === "builder" && <div className="container">
         <div className="card"><div className="card-body"><h1 style={{ marginTop: 0, fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)" }}>{editingId ? "Edit Request" : "Create a Request"}</h1><p className="muted">Request details come first. Add deliverables after, then use per-deliverable notes only when a material needs special handling.</p></div></div>
-        <div className="grid">
-          <main>
+        <main style={{ maxWidth: 760, margin: "0 auto" }}>
             <Section n="1" title="Request Info">
               <div className="row">
                 <Field label="Project title"><input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="e.g. Monitor Topper — KonKon Promo" /></Field>
@@ -1823,8 +1803,6 @@ export default function CreativeBriefBuilderPrototype() {
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: 30 }}><button className="btn purple" onClick={openReview}>Review Request</button></div>
           </main>
-          <aside><RequestPreview form={form} ai={ai} onReview={openReview} /></aside>
-        </div>
       </div>}
 
       {view === "dashboard" && <div className="container">
