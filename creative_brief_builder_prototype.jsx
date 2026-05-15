@@ -144,6 +144,7 @@ const css = `
   .card-status-select.s-forreview { background: #fffbeb; color: #92400e; border-color: #fde68a; }
   .card-status-select.s-forrevision { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
   .card-status-select.s-done { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+  .card-status-select option { background: white; color: #18181b; }
   .comment-badge { position: absolute; right: -8px; top: -9px; min-width: 17px; height: 17px; border-radius: 999px; background: #ef4444; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; border: 2px solid white; }
   .dashboard-toolbar { display: grid; grid-template-columns: minmax(260px, 1fr) 180px 180px; gap: 10px; margin-bottom: 16px; }
   .detail-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, .8fr); gap: 18px; }
@@ -257,6 +258,7 @@ const css = `
   .modal-status-select.s-forreview { background: #fffbeb; color: #92400e; border-color: #fde68a; }
   .modal-status-select.s-forrevision { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
   .modal-status-select.s-done { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+  .modal-status-select option { background: white; color: #18181b; }
   .del-progress-bar { height: 4px; background: #e4e4e7; border-radius: 99px; overflow: hidden; margin: 0 0 12px; }
   .del-progress-fill { height: 100%; border-radius: 99px; transition: width .35s ease; background: #22c55e; }
   .ctype-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
