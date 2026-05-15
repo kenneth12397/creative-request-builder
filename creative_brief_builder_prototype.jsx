@@ -1222,8 +1222,7 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
         {/* ── Sticky header: title + deadline + always-visible actions ── */}
         <div className="modal-header">
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
-              <span className={`pill ${meta.badge}`} style={{ fontSize: 11, padding: "3px 8px" }}>{request.status}</span>
+            <div style={{ marginBottom: 6 }}>
               <span className="muted small">{request.form.brand} · {request.form.outputMode}{request.form.requestor ? ` · by ${request.form.requestor}` : ""}</span>
             </div>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: "var(--fw-black)", lineHeight: 1.2 }}>
