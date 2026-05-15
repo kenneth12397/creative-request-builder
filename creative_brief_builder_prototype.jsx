@@ -1222,12 +1222,12 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
         {/* ── Sticky header: title + deadline + always-visible actions ── */}
         <div className="modal-header">
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ marginBottom: 6 }}>
-              <span className="muted small">{request.form.brand} · {request.form.outputMode}{request.form.requestor ? ` · by ${request.form.requestor}` : ""}</span>
-            </div>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: "var(--fw-black)", lineHeight: 1.2 }}>
+            <h2 style={{ margin: "0 0 4px", fontSize: 22, fontWeight: "var(--fw-black)", lineHeight: 1.2 }}>
               {request.form.title || "Untitled Request"}
             </h2>
+            <span style={{ fontSize: "var(--fs-body)", color: "#71717a" }}>
+              {request.form.brand} · {request.form.outputMode}{request.form.requestor ? ` · by ${request.form.requestor}` : ""}
+            </span>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
             <button className="btn secondary" style={{ fontSize: "var(--fs-small)", padding: "8px 14px" }} onClick={() => { onClose(); onEdit(request.id); }}>Edit</button>
