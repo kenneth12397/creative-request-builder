@@ -116,9 +116,8 @@ const css = `
   .column-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 4px 10px; }
   .column-title { font-weight: 900; display: flex; align-items: center; gap: 8px; }
   .count { min-width: 24px; height: 24px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: white; border: 1px solid #d4d4d8; font-size: 12px; color: #52525b; }
-  .task-card { position: relative; background: white; border: 1px solid #dddde3; border-radius: 12px; padding: 16px 14px 14px 28px; margin-bottom: 10px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.07); transition: transform .08s ease, box-shadow .12s ease; }
+  .task-card { position: relative; background: white; border: 1px solid #dddde3; border-radius: 12px; padding: 16px 14px 14px 16px; margin-bottom: 10px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.07); transition: transform .08s ease, box-shadow .12s ease; }
   .task-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.10); }
-  .deadline-strip { position: absolute; left: 0; top: 0; bottom: 0; width: 10px; border-radius: 12px 0 0 12px; background: #a1a1aa; }
   .strip-gray { background: #a1a1aa; }
   .strip-green { background: #22c55e; }
   .strip-yellow { background: #facc15; }
@@ -131,7 +130,11 @@ const css = `
   .assignee-avatar { width: 20px; height: 20px; border-radius: 50%; background: #e4e4e7; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: var(--fw-black); color: #71717a; flex-shrink: 0; }
   .assignee-avatar.assigned { background: #d1fae5; color: #065f46; }
   .task-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid #f4f4f5; padding-top: 10px; }
-  .task-deadline { font-size: var(--fs-caption); color: #71717a; }
+  .task-deadline { font-size: var(--fs-caption); font-weight: var(--fw-semi); }
+  .task-deadline.dl-overdue { color: #dc2626; }
+  .task-deadline.dl-soon { color: #d97706; }
+  .task-deadline.dl-safe { color: #16a34a; }
+  .task-deadline.dl-none { color: #a1a1aa; }
   .task-icons { display: flex; gap: 10px; align-items: center; }
   .task-meta { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; font-size: 14px; color: #3f3f46; }
   .task-icon { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-caption); font-weight: var(--fw-bold); color: #52525b; white-space: nowrap; position: relative; }
@@ -1022,6 +1025,7 @@ function TaskCard({ request, onOpen, onStatusChange }) {
   const initials = isAssigned
     ? assignedTo.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
     : "?";
+  const dlClass = meta.days === null ? "dl-none" : meta.days < 0 ? "dl-overdue" : meta.days <= 7 ? "dl-soon" : "dl-safe";
 
   return (
     <div
@@ -1031,7 +1035,6 @@ function TaskCard({ request, onOpen, onStatusChange }) {
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter") onOpen(request.id); }}
     >
-      <span className={`deadline-strip ${meta.strip}`} />
       <div className="task-top">
         <span className={`pill ${request.form.outputMode === "Motion" ? "purple" : "blue"}`} style={{ fontSize: 11, padding: "3px 8px" }}>
           {request.form.outputMode}
@@ -1052,7 +1055,7 @@ function TaskCard({ request, onOpen, onStatusChange }) {
         {assignedTo}
       </div>
       <div className="task-footer">
-        <span className="task-deadline">{formatDate(request.form.deadline) || "No deadline"}</span>
+        <span className={`task-deadline ${dlClass}`}>{formatDate(request.form.deadline) || "No deadline"}</span>
         <div className="task-icons">
           <span className="task-icon">☑ {done}/{total || 0}</span>
           <span className="task-icon">
