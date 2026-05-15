@@ -1495,7 +1495,7 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
   );
 }
 
-function AppHeader({ view, onCreateRequest, onDashboard }) {
+function AppHeader({ onCreateRequest }) {
   return (
     <div className="header">
       <div className="header-inner">
@@ -1503,10 +1503,7 @@ function AppHeader({ view, onCreateRequest, onDashboard }) {
           <h2 style={{ margin: 0, fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)" }}>Creative Request Builder</h2>
           <div className="muted small">Request intake → AI brief → task dashboard</div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <button className={`btn ${view === "builder" ? "" : "secondary"}`} onClick={onCreateRequest}>Create Request</button>
-          <button className={`btn ${view === "dashboard" ? "" : "secondary"}`} onClick={onDashboard}>Dashboard</button>
-        </div>
+        <button className="btn" onClick={onCreateRequest}>Create Request</button>
       </div>
     </div>
   );
@@ -1545,8 +1542,58 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
   );
 }
 
+function CreateRequestModal({ form, setForm, editingId, onClose, onReview }) {
+  const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal large" style={{ maxWidth: 820, maxHeight: "92vh" }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: "var(--fw-black)", lineHeight: 1.2 }}>
+              {editingId ? "Edit Request" : "New Request"}
+            </h2>
+            <p className="muted" style={{ margin: "3px 0 0", fontSize: "var(--fs-small)" }}>
+              Fill in details, add sizes, then review before submitting.
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+            <button className="btn purple" onClick={onReview}>Review Request</button>
+            <button className="btn ghost" onClick={onClose} style={{ fontSize: 20, lineHeight: 1, padding: "6px 10px" }}>×</button>
+          </div>
+        </div>
+        <div className="modal-body">
+          <Section n="1" title="Request Info">
+            <div className="row">
+              <Field label="Project title"><input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="e.g. Monitor Topper — KonKon Promo" /></Field>
+              <Field label="Brand"><select value={form.brand} onChange={(e) => update("brand", e.target.value)}><option>LakiWin</option><option>VikingFunLand</option><option>RAC PH</option><option>Other Brand</option></select></Field>
+            </div>
+            <div className="row">
+              <Field label="Date needed"><input type="date" value={form.deadline} onChange={(e) => update("deadline", e.target.value)} /></Field>
+              <Field label="Requested by"><select value={form.requestor} onChange={(e) => update("requestor", e.target.value)}><option value="">Select requestor</option>{REQUESTORS.map((person) => <option key={person}>{person}</option>)}</select></Field>
+            </div>
+            <Field label="Output type"><div className="choice-grid">{["Static", "Motion"].map((m) => <button key={m} type="button" className={`choice ${form.outputMode === m ? "active" : ""}`} onClick={() => update("outputMode", m)}>{m}</button>)}</div></Field>
+          </Section>
+
+          <Section n="2" title="Request Details">
+            <p className="muted" style={{ marginTop: 0 }}>Paste all promo details, copy, mechanics, mandatories, and notes here.</p>
+            <textarea value={form.requestDetails} onChange={(e) => update("requestDetails", e.target.value)} placeholder={`Example:\nput KonKon's QR code.\nfeature SuperAce by JILI.\nput PAGCOR mandatories.\nshowcase LakiWin logo.`} style={{ minHeight: 155 }} />
+          </Section>
+
+          <Section n="3" title="Sizes">
+            <DeliverableComposer form={form} setForm={setForm} />
+          </Section>
+
+          <Section n="4" title="References">
+            <ReferenceUploader form={form} setForm={setForm} />
+          </Section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CreativeBriefBuilderPrototype() {
-  const [view, setView] = useState("builder");
+  const [builderOpen, setBuilderOpen] = useState(false);
   const [form, setForm] = useState(blankForm);
   const [requests, setRequests] = useState([]);
   const [ai, setAi] = useState(null);
@@ -1623,8 +1670,6 @@ export default function CreativeBriefBuilderPrototype() {
     });
   }, [requests]);
 
-  const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
-
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedDetails(form.requestDetails), 300);
     return () => clearTimeout(timer);
@@ -1645,7 +1690,7 @@ export default function CreativeBriefBuilderPrototype() {
     setReviewOpen(false);
     setSelectedId(null);
     setEditingId(null);
-    setView("builder");
+    setBuilderOpen(true);
   };
 
   const submitRequest = () => {
@@ -1674,7 +1719,7 @@ export default function CreativeBriefBuilderPrototype() {
     setAi(null);
     setReviewOpen(false);
     setEditingId(null);
-    setView("dashboard");
+    setBuilderOpen(false);
   };
 
   const startEditRequest = (id) => {
@@ -1684,7 +1729,7 @@ export default function CreativeBriefBuilderPrototype() {
     setAi(req.ai || null);
     setEditingId(id);
     setSelectedId(null);
-    setView("builder");
+    setBuilderOpen(true);
   };
 
   const openReview = () => {
@@ -1762,41 +1807,9 @@ export default function CreativeBriefBuilderPrototype() {
   return (
     <div className="app">
       <style>{css}</style>
-      <AppHeader view={view} onCreateRequest={resetBuilder} onDashboard={() => setView("dashboard")} />
+      <AppHeader onCreateRequest={resetBuilder} />
 
-      {view === "builder" && <div className="container">
-        <div className="card"><div className="card-body"><h1 style={{ marginTop: 0, fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)" }}>{editingId ? "Edit Request" : "Create a Request"}</h1><p className="muted">Request details come first. Add deliverables after, then use per-deliverable notes only when a material needs special handling.</p></div></div>
-        <main style={{ maxWidth: 760, margin: "0 auto" }}>
-            <Section n="1" title="Request Info">
-              <div className="row">
-                <Field label="Project title"><input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="e.g. Monitor Topper — KonKon Promo" /></Field>
-                <Field label="Brand"><select value={form.brand} onChange={(e) => update("brand", e.target.value)}><option>LakiWin</option><option>VikingFunLand</option><option>RAC PH</option><option>Other Brand</option></select></Field>
-              </div>
-              <div className="row">
-                <Field label="Date needed"><input type="date" value={form.deadline} onChange={(e) => update("deadline", e.target.value)} /></Field>
-                <Field label="Requested by"><select value={form.requestor} onChange={(e) => update("requestor", e.target.value)}><option value="">Select requestor</option>{REQUESTORS.map((person) => <option key={person}>{person}</option>)}</select></Field>
-              </div>
-              <Field label="Output type"><div className="choice-grid">{["Static", "Motion"].map((m) => <button key={m} type="button" className={`choice ${form.outputMode === m ? "active" : ""}`} onClick={() => update("outputMode", m)}>{m}</button>)}</div></Field>
-            </Section>
-
-            <Section n="2" title="Request Details">
-              <p className="muted" style={{ marginTop: 0 }}>Paste all promo details, copy, mechanics, mandatories, and notes here.</p>
-              <textarea value={form.requestDetails} onChange={(e) => update("requestDetails", e.target.value)} placeholder={`Example:\nput KonKon's QR code.\nfeature SuperAce by JILI.\nput PAGCOR mandatories.\nshowcase LakiWin logo.`} style={{ minHeight: 155 }} />
-            </Section>
-
-            <Section n="3" title="Sizes">
-              <DeliverableComposer form={form} setForm={setForm} />
-            </Section>
-
-            <Section n="4" title="References">
-              <ReferenceUploader form={form} setForm={setForm} />
-            </Section>
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: 30 }}><button className="btn purple" onClick={openReview}>Review Request</button></div>
-          </main>
-      </div>}
-
-      {view === "dashboard" && <div className="container">
+      <div className="container">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
           <div><h1 style={{ margin: 0, fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)" }}>Dashboard</h1><p className="muted">Use the dropdown on each card to change status. New requests land in To Do.</p></div>
         </div>
@@ -1817,8 +1830,9 @@ export default function CreativeBriefBuilderPrototype() {
             </section>
           ))}
         </div>
-      </div>}
+      </div>
 
+      {builderOpen && <CreateRequestModal form={form} setForm={setForm} editingId={editingId} onClose={() => { setBuilderOpen(false); setEditingId(null); setForm(blankForm); }} onReview={openReview} />}
       {reviewOpen && <RequestReviewModal form={form} ai={ai || output} onCancel={() => setReviewOpen(false)} onSubmit={submitRequest} />}
       {selectedRequest && <TaskModal request={selectedRequest} setRequests={setRequests} onClose={() => setSelectedId(null)} onDelete={deleteRequest} onEdit={startEditRequest} onToast={addToast} />}
       {deleteConfirmId && <DeleteConfirmModal onConfirm={confirmDelete} onCancel={() => setDeleteConfirmId(null)} />}
