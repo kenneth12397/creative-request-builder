@@ -161,7 +161,7 @@ const css = `
   .asset-card-desc { font-size: 11px; color: #71717a; display: block; line-height: 1.45; }
   .asset-card.active .asset-card-name { color: #5b21b6; }
   .asset-card.active .asset-card-desc { color: #7c3aed; }
-  .prompt-block { background: #1e1b2e; color: #cdd6f4; border-radius: 14px; padding: 16px 18px; font-size: 13px; line-height: 1.7; max-height: 240px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; font-family: inherit; margin: 10px 0 8px; border: 1px solid #2d2b3d; }
+  .prompt-block { background: #f8fafc; color: #1e293b; border-radius: 14px; padding: 16px 18px; font-size: 13px; line-height: 1.7; max-height: 280px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; font-family: inherit; margin: 10px 0 8px; border: 1px solid #e2e8f0; }
   .prompt-copy-btn { width: 100%; border: 0; border-radius: 12px; padding: 11px; font-size: 14px; font-weight: 850; cursor: pointer; background: #7c3aed; color: white; transition: background .15s; }
   .prompt-copy-btn:hover { background: #6d28d9; }
   .prompt-copy-btn.copied { background: #059669; }
@@ -237,6 +237,10 @@ const css = `
   .toast.success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
   .toast.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
   @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .tm-deadline-chip { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border: 1px solid #e4e4e7; border-radius: 10px; margin-bottom: 12px; }
+  .tm-deadline-date { font-size: 14px; font-weight: 800; color: #18181b; }
+  .tm-comments-scroll { max-height: 260px; overflow-y: auto; padding-right: 2px; }
+  .tm-activity-scroll { max-height: 200px; overflow-y: auto; padding-right: 2px; }
   @media (max-width: 1000px) { .grid, .detail-grid, .dashboard-toolbar { grid-template-columns: 1fr; } .sticky { position: static; } .board { grid-template-columns: repeat(5, 260px); } }
   @media (max-width: 620px) { .row, .three-row { grid-template-columns: 1fr; } .task-meta { grid-template-columns: 1fr auto auto; gap: 8px; } }
 `;
@@ -272,6 +276,13 @@ function formatDate(dateStr) {
   const date = new Date(`${dateStr}T00:00:00`);
   if (Number.isNaN(date.getTime())) return dateStr;
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function formatDateFull(dateStr) {
+  if (!dateStr) return "No deadline set";
+  const date = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
 function formatDateTime(iso) {
@@ -1199,47 +1210,59 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
   return (
     <div className="modal-bg">
       <div className="modal large">
+        {/* ── Sticky header: title + deadline + always-visible actions ── */}
         <div className="modal-header">
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
-              <h2 style={{ margin: 0 }}>{request.form.title || "Untitled Request"}</h2>
-              <span className={`pill ${meta.badge}`}>{request.status}</span>
-              {meta.days !== null && <span className="muted small">{meta.days < 0 ? `${Math.abs(meta.days)}d overdue` : meta.days === 0 ? "Due today" : `${meta.days}d left`}</span>}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5, flexWrap: "wrap" }}>
+              <span className={`pill ${meta.badge}`} style={{ fontSize: 11, padding: "3px 8px" }}>{request.status}</span>
+              <span className="muted small">{request.form.brand} · {request.form.outputMode}{request.form.requestor ? ` · by ${request.form.requestor}` : ""}</span>
             </div>
-            <div className="muted small">{request.form.brand} • {request.form.outputMode} • Submitted {formatDateTime(request.createdAt)} • Deadline {formatDate(request.form.deadline)}</div>
+            <h2 style={{ margin: "0 0 5px", fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)", lineHeight: 1.2 }}>
+              {request.form.title || "Untitled Request"}
+            </h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: "var(--fs-small)", fontWeight: "var(--fw-semi)", color: "#52525b" }}>
+                📅 {formatDateFull(request.form.deadline)}
+              </span>
+              {meta.days !== null && (
+                <span className={`pill ${meta.badge}`} style={{ fontSize: 11, padding: "2px 7px" }}>
+                  {meta.days < 0 ? `${Math.abs(meta.days)}d overdue` : meta.days === 0 ? "Due today" : `${meta.days}d left`}
+                </span>
+              )}
+            </div>
           </div>
-          <button className="btn ghost" onClick={onClose} style={{ fontSize: 20, lineHeight: 1 }}>×</button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+            <button className="btn secondary" style={{ fontSize: "var(--fs-small)", padding: "8px 14px" }} onClick={() => { onClose(); onEdit(request.id); }}>Edit</button>
+            <button className="btn danger" style={{ fontSize: "var(--fs-small)", padding: "8px 14px" }} onClick={() => onDelete(request.id)}>Delete</button>
+            <button className="btn ghost" onClick={onClose} style={{ fontSize: 20, lineHeight: 1, padding: "6px 10px" }}>×</button>
+          </div>
         </div>
+
         <div className="modal-body">
           <div className="detail-grid">
+            {/* ── Left column: Brief → Deliverables → Prompt ── */}
             <main>
               <div className="info-box">
-                <div className="field-label">AI Project Brief</div>
-                <div style={{ fontSize: 13, color: "#71717a", marginBottom: 8 }}>
-                  {request.form.outputMode} · {request.form.brand}{request.form.requestor ? ` · Requested by ${request.form.requestor}` : ""}
-                </div>
+                <div className="field-label">Brief</div>
                 {textLines(request.form.requestDetails).length > 0 ? (
-                  <div style={{ marginBottom: 10 }}>
+                  <div>
                     {textLines(request.form.requestDetails).map((line, i) => (
-                      <div key={i} style={{ display: "flex", gap: 8, marginBottom: 5, lineHeight: 1.5 }}>
-                        <span style={{ color: "#9ca3af", flexShrink: 0, marginTop: 1 }}>•</span>
+                      <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, lineHeight: 1.55, fontSize: "var(--fs-body)" }}>
+                        <span style={{ color: "#a1a1aa", flexShrink: 0, marginTop: 2 }}>•</span>
                         <span>{line}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p style={{ color: "#9ca3af", margin: "0 0 10px" }}>No brief details provided.</p>
-                )}
-                {request.form.deliverables?.length > 0 && (
-                  <div style={{ fontSize: 12, color: "#71717a", borderTop: "1px solid #f3f4f6", paddingTop: 8 }}>
-                    Adapt across: {request.form.deliverables.map(d => `${d.label}${d.width && d.unit !== "N/A" ? ` (${d.width}×${d.height} ${d.unit})` : ""}`).join(", ")}
-                  </div>
+                  <p style={{ color: "#a1a1aa", margin: 0, fontSize: "var(--fs-body)" }}>No brief details provided.</p>
                 )}
               </div>
 
               <div className="info-box">
-                <div className="field-label">Deliverables</div>
-
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <div className="field-label" style={{ marginBottom: 0 }}>Deliverables</div>
+                  <span style={{ fontSize: "var(--fs-caption)", color: "#71717a" }}>{doneCount}/{deliverables.length} done</span>
+                </div>
                 <div className="del-list">
                   {deliverables.map(d => (
                     <div key={d.id}>
@@ -1258,11 +1281,11 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
                           ))}
                         </select>
                         <div className="del-menu-wrap">
-                          <button className="del-menu-btn" type="button" onClick={(e) => { e.stopPropagation(); setModalDelMenu(modalDelMenu === d.id ? null : d.id) }}>···</button>
+                          <button className="del-menu-btn" type="button" onClick={(e) => { e.stopPropagation(); setModalDelMenu(modalDelMenu === d.id ? null : d.id); }}>···</button>
                           {modalDelMenu === d.id && (
                             <div className="del-dropdown">
-                              <button className="del-dropdown-item" type="button" onClick={() => { setDelExpandedNotes(prev => ({ ...prev, [d.id]: !prev[d.id] })); setModalDelMenu(null) }}>Notes</button>
-                              <button className="del-dropdown-item danger" type="button" onClick={() => { removeModalDeliverable(d.id); setModalDelMenu(null) }}>Remove</button>
+                              <button className="del-dropdown-item" type="button" onClick={() => { setDelExpandedNotes(prev => ({ ...prev, [d.id]: !prev[d.id] })); setModalDelMenu(null); }}>Notes</button>
+                              <button className="del-dropdown-item danger" type="button" onClick={() => { removeModalDeliverable(d.id); setModalDelMenu(null); }}>Remove</button>
                             </div>
                           )}
                         </div>
@@ -1287,11 +1310,9 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
                     </div>
                   ))}
                 </div>
-
                 {deliverables.length === 0 && (
-                  <p style={{ color: "#9ca3af", fontSize: 13, margin: "4px 0" }}>No deliverables yet.</p>
+                  <p style={{ color: "#a1a1aa", fontSize: "var(--fs-small)", margin: "4px 0" }}>No deliverables yet.</p>
                 )}
-
                 {addingDeliverable ? (
                   <div style={{ position: "relative", marginTop: 8 }}>
                     <div className="del-input-row">
@@ -1327,8 +1348,8 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
 
               <div className="info-box">
                 <div className="field-label">Prompt Generator</div>
-                <div className="prompt-block" style={{ minHeight: 120 }}>
-                  {generatedPrompt || <span style={{ color: "#6b6b8a", fontStyle: "italic" }}>Click Generate to build a prompt from this request.</span>}
+                <div className="prompt-block" style={{ minHeight: 80 }}>
+                  {generatedPrompt || <span style={{ color: "#94a3b8", fontStyle: "italic" }}>Click Generate to build an AI prompt from this request.</span>}
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                   <button
@@ -1351,53 +1372,87 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
                   )}
                 </div>
               </div>
-
-              <div className="info-box">
-                <div className="field-label">Original Request Details</div>
-                <p style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>{request.form.requestDetails || "—"}</p>
-              </div>
             </main>
 
+            {/* ── Right sidebar: controls + references + capped comments + capped activity ── */}
             <aside>
               <div className="info-box">
                 <div className="field-label">Task Controls</div>
-                <span className={`pill ${meta.badge}`}>{meta.label}</span>
-                <div style={{ marginTop: 12 }}><label>Status</label><select value={request.status} onChange={(e) => changeTaskStatus(e.target.value)}>{STATUS_COLUMNS.map((s) => <option key={s}>{s}</option>)}</select></div>
-                <div style={{ marginTop: 12 }}><label>Assigned To</label><select value={request.form.assignedTo || "Unassigned"} onChange={(e) => changeAssignee(e.target.value)}>{DESIGNERS.map((d) => <option key={d}>{d}</option>)}</select></div>
-                <p className="small muted">Requested by: <strong>{request.form.requestor || "—"}</strong></p>
-              </div>
-
-              <div className="info-box">
-                <div className="field-label">References / Attachments</div>
-                {request.form.referenceImages?.length ? <div className="thumb-strip">{request.form.referenceImages.map((img) => <img className="thumb" src={img.src} alt={img.name} key={img.id} />)}</div> : <p className="muted">No reference images.</p>}
-                <p className="small muted" style={{ whiteSpace: "pre-wrap" }}>{request.form.referenceNotes || "No reference notes."}</p>
-              </div>
-
-              <div className="info-box">
-                <div className="field-label">Comments / Clarifications</div>
-                {request.comments?.length ? request.comments.map((c) => <div className="comment" key={c.id}><strong>{c.author}</strong><span className="comment-type">{c.type || "General"}</span><br /><span>{c.body}</span><br /><small className="muted">{formatActivityTime(c.createdAt)}</small></div>) : <p className="muted">No comments yet.</p>}
-                <div className="row" style={{ marginTop: 10 }}>
-                  <select value={commentType} onChange={(e) => setCommentType(e.target.value)}>{COMMENT_TYPES.map((type) => <option key={type}>{type}</option>)}</select>
-                  <button className="btn secondary" onClick={() => setCommentType("Revision")}>Revision note</button>
+                <div className="tm-deadline-chip">
+                  <span className="tm-deadline-date">📅 {formatDateFull(request.form.deadline)}</span>
+                  {meta.days !== null && (
+                    <span className={`pill ${meta.badge}`} style={{ fontSize: 11, padding: "2px 7px" }}>
+                      {meta.days < 0 ? `${Math.abs(meta.days)}d overdue` : meta.days === 0 ? "Due today" : `${meta.days}d left`}
+                    </span>
+                  )}
                 </div>
-                <textarea style={{ minHeight: 72, marginTop: 8 }} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add comment, clarification, revision note, or approval note..." />
-                <button className="btn" style={{ width: "100%" }} onClick={addComment}>Add Comment</button>
+                <div style={{ marginBottom: 10 }}><label>Status</label><select value={request.status} onChange={(e) => changeTaskStatus(e.target.value)}>{STATUS_COLUMNS.map((s) => <option key={s}>{s}</option>)}</select></div>
+                <div><label>Assigned To</label><select value={request.form.assignedTo || "Unassigned"} onChange={(e) => changeAssignee(e.target.value)}>{DESIGNERS.map((d) => <option key={d}>{d}</option>)}</select></div>
+                {request.form.requestor && <p className="small muted" style={{ marginTop: 8, marginBottom: 0 }}>Requested by: <strong>{request.form.requestor}</strong></p>}
+              </div>
+
+              {(request.form.referenceImages?.length > 0 || request.form.referenceNotes) && (
+                <div className="info-box">
+                  <div className="field-label">References</div>
+                  {request.form.referenceImages?.length > 0 && (
+                    <div className="thumb-strip">{request.form.referenceImages.map((img) => <img className="thumb" src={img.src} alt={img.name} key={img.id} />)}</div>
+                  )}
+                  {request.form.referenceNotes && (
+                    <p className="small muted" style={{ marginTop: 8, whiteSpace: "pre-wrap", marginBottom: 0 }}>{request.form.referenceNotes}</p>
+                  )}
+                </div>
+              )}
+
+              <div className="info-box">
+                <div className="field-label">Comments</div>
+                {request.comments?.length > 0 && (
+                  <div className="tm-comments-scroll">
+                    {request.comments.map((c) => (
+                      <div className="comment" key={c.id}>
+                        <strong style={{ fontSize: "var(--fs-small)" }}>{c.author}</strong>
+                        <span className="comment-type">{c.type || "General"}</span>
+                        <br />
+                        <span style={{ fontSize: "var(--fs-body)" }}>{c.body}</span>
+                        <br />
+                        <small className="muted">{formatActivityTime(c.createdAt)}</small>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!request.comments?.length && <p className="muted small" style={{ marginBottom: 10 }}>No comments yet.</p>}
+                <div style={{ borderTop: "1px solid #f4f4f5", paddingTop: 10, marginTop: request.comments?.length ? 8 : 0 }}>
+                  <div className="row" style={{ marginBottom: 8 }}>
+                    <select value={commentType} onChange={(e) => setCommentType(e.target.value)}>{COMMENT_TYPES.map((type) => <option key={type}>{type}</option>)}</select>
+                    <button className="btn secondary" style={{ fontSize: "var(--fs-small)" }} onClick={() => setCommentType("Revision")}>Revision</button>
+                  </div>
+                  <textarea style={{ minHeight: 64, marginBottom: 8 }} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add comment or revision note..." />
+                  <button className="btn" style={{ width: "100%" }} onClick={addComment}>Add Comment</button>
+                </div>
               </div>
 
               <div className="info-box">
-                <div className="field-label">Activity History</div>
-                {request.activity?.length ? request.activity.map((item) => <div className="activity-item" key={item.id}>
-                  <small className="muted">{formatActivityTime(item.createdAt)}</small>
-                  <div><strong>{item.action}</strong>{item.detail ? <><br /><span className="muted">{item.detail}</span></> : null}</div>
-                </div>) : <p className="muted">No activity yet.</p>}
+                <div className="field-label">Activity</div>
+                {request.activity?.length > 0 ? (
+                  <div className="tm-activity-scroll">
+                    {request.activity.map((item) => (
+                      <div className="activity-item" key={item.id}>
+                        <small className="muted">{formatActivityTime(item.createdAt)}</small>
+                        <div style={{ fontSize: "var(--fs-small)" }}>
+                          <strong>{item.action}</strong>
+                          {item.detail ? <><br /><span className="muted">{item.detail}</span></> : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="muted small">No activity yet.</p>
+                )}
               </div>
-
-              <button className="btn secondary" style={{ width: "100%", marginBottom: 8 }} onClick={() => { onClose(); onEdit(request.id); }}>Edit Request</button>
-              <button className="btn danger" style={{ width: "100%" }} onClick={() => onDelete(request.id)}>Delete Request</button>
             </aside>
           </div>
         </div>
       </div>
+
       {revisionDialog && (
         <div className="revision-dialog-overlay" onClick={() => setRevisionDialog(null)}>
           <div className="revision-dialog" onClick={(e) => e.stopPropagation()}>
