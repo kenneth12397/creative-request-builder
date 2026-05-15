@@ -100,10 +100,10 @@ const css = `
   .thumb-strip { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
   .thumb { width: 64px; height: 64px; border-radius: 12px; border: 1px solid #e4e4e7; object-fit: cover; background: #f4f4f5; }
   .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.48); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 99; }
-  .modal { background: white; border-radius: 20px; width: 100%; max-width: 680px; max-height: 88vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.28); }
+  .modal { background: white; border-radius: 20px; width: 100%; max-width: 680px; max-height: 88vh; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.28); display: flex; flex-direction: column; }
   .modal.large { max-width: 960px; }
-  .modal-header { padding: 18px 20px; border-bottom: 1px solid #e4e4e7; display: flex; align-items: center; justify-content: space-between; gap: 16px; position: sticky; top: 0; background: white; z-index: 2; }
-  .modal-body { padding: 20px; }
+  .modal-header { padding: 18px 20px; border-bottom: 1px solid #e4e4e7; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: white; flex-shrink: 0; }
+  .modal-body { padding: 20px; overflow: auto; flex: 1; }
   .upload-zone { border: 1.5px dashed #a1a1aa; border-radius: 18px; min-height: 160px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 22px; background: #fafafa; }
   .upload-zone.dragging { background: #f3e8ff; border-color: #8b5cf6; }
   .thumb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; margin-top: 16px; }
@@ -952,8 +952,8 @@ function ReferenceUploader({ form, setForm }) {
         <Field label="Reference notes"><textarea value={form.referenceNotes} onChange={(e) => setForm((prev) => ({ ...prev, referenceNotes: e.target.value }))} placeholder="What should we borrow from the references? Example: Use layout and hierarchy only. Keep colors LakiWin-branded." /></Field>
       </div>
 
-      {open && <div className="modal-bg">
-        <div className="modal">
+      {open && <div className="modal-bg" onClick={() => setOpen(false)}>
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header"><h2 style={{ margin: 0 }}>Upload reference images</h2><span className="muted small">{draftImages.length}/{MAX_REFERENCE_IMAGES}</span></div>
           <div className="modal-body">
             <div
@@ -999,8 +999,8 @@ function RequestReviewModal({ form, ai, onCancel, onSubmit }) {
   const missing = getMissing(form);
   const output = ai || generateOutput(form);
   return (
-    <div className="modal-bg">
-      <div className="modal large">
+    <div className="modal-bg" onClick={onCancel}>
+      <div className="modal large" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header"><h2 style={{ margin: 0 }}>Review before submitting</h2><button className="btn ghost" onClick={onCancel}>×</button></div>
         <div className="modal-body">
           <div className="detail-grid">
@@ -1228,8 +1228,8 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
   }
 
   return (
-    <div className="modal-bg">
-      <div className="modal large">
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal large" onClick={(e) => e.stopPropagation()}>
         {/* ── Sticky header: title + deadline + always-visible actions ── */}
         <div className="modal-header">
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -1501,7 +1501,7 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
       </div>
 
       {revisionDialog && (
-        <div className="revision-dialog-overlay" onClick={() => setRevisionDialog(null)}>
+        <div className="revision-dialog-overlay" onClick={(e) => { e.stopPropagation(); setRevisionDialog(null); }}>
           <div className="revision-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="revision-dialog-title">Add Revision Note</div>
             <p className="muted" style={{ margin: 0 }}>Optional — describe what needs to change. Leave blank to just move the status.</p>
