@@ -145,7 +145,7 @@ const css = `
   .card-status-select.s-forrevision { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
   .card-status-select.s-done { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
   .card-status-select option { background: white; color: #18181b; }
-  .comment-badge { position: absolute; right: -8px; top: -9px; min-width: 17px; height: 17px; border-radius: 999px; background: #ef4444; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; border: 2px solid white; }
+  .unread-dot { position: absolute; top: 12px; right: 12px; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
   .dashboard-toolbar { display: grid; grid-template-columns: minmax(260px, 1fr) 180px 180px; gap: 10px; margin-bottom: 16px; }
   .detail-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, .8fr); gap: 18px; }
   .info-box { border: 1px solid #e4e4e7; border-radius: 14px; padding: 12px; background: #fafafa; margin-bottom: 12px; }
@@ -1037,6 +1037,7 @@ function TaskCard({ request, onOpen, onStatusChange }) {
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter") onOpen(request.id); }}
     >
+      {request.unreadComments > 0 && <span className="unread-dot" />}
       <div className="task-top">
         <span className={`pill ${request.form.outputMode === "Motion" ? "purple" : "blue"}`} style={{ fontSize: 11, padding: "3px 8px" }}>
           {request.form.outputMode}
@@ -1060,10 +1061,6 @@ function TaskCard({ request, onOpen, onStatusChange }) {
         <span className={`task-deadline ${dlClass}`}>{formatDate(request.form.deadline) || "No deadline"}</span>
         <div className="task-icons">
           <span className="task-icon">☑ {done}/{total || 0}</span>
-          <span className="task-icon">
-            💬 {request.comments?.length || 0}
-            {request.unreadComments > 0 && <span className="comment-badge">{request.unreadComments}</span>}
-          </span>
         </div>
       </div>
     </div>
