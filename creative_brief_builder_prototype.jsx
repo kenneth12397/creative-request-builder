@@ -48,6 +48,10 @@ const blankForm = {
 
 
 const css = `
+  :root {
+    --fs-heading: 20px; --fs-subheading: 15px; --fs-body: 14px; --fs-small: 13px; --fs-caption: 12px;
+    --fw-black: 900; --fw-bold: 800; --fw-semi: 600; --fw-regular: 400;
+  }
   * { box-sizing: border-box; }
   body { margin: 0; }
   .app { min-height: 100vh; background: #f4f4f5; color: #18181b; font-family: Inter, Arial, sans-serif; }
@@ -60,7 +64,7 @@ const css = `
   .card-title { display: flex; align-items: center; gap: 10px; }
   .card-body { padding: 18px; }
   .section-num { width: 26px; height: 26px; border-radius: 999px; background: #18181b; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; flex: 0 0 auto; }
-  label, .field-label { font-size: 12px; font-weight: 850; display: block; margin-bottom: 6px; color: #71717a; text-transform: uppercase; letter-spacing: .04em; }
+  label, .field-label { font-size: var(--fs-caption); font-weight: var(--fw-bold); display: block; margin-bottom: 6px; color: #71717a; text-transform: uppercase; letter-spacing: .04em; }
   input, textarea, select { width: 100%; border: 1px solid #d4d4d8; border-radius: 12px; padding: 10px 12px; font-size: 14px; outline: none; background: white; color: #18181b; }
   textarea { min-height: 110px; resize: vertical; line-height: 1.45; }
   input:focus, textarea:focus, select:focus { border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139,92,246,.12); }
@@ -81,7 +85,7 @@ const css = `
   .pill.green { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
   .pill.purple { background: #f3e8ff; color: #6d28d9; border-color: #e9d5ff; }
   .muted { color: #71717a; }
-  .small { font-size: 13px; }
+  .small { font-size: var(--fs-small); }
   .warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; border-radius: 12px; padding: 11px 12px; font-size: 13px; margin-bottom: 8px; }
   .success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; border-radius: 12px; padding: 11px 12px; font-size: 13px; margin-bottom: 8px; }
   .sticky { position: sticky; top: 92px; }
@@ -112,19 +116,31 @@ const css = `
   .column-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 4px 10px; }
   .column-title { font-weight: 900; display: flex; align-items: center; gap: 8px; }
   .count { min-width: 24px; height: 24px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: white; border: 1px solid #d4d4d8; font-size: 12px; color: #52525b; }
-  .task-card { position: relative; background: white; border: 1px solid #dddde3; border-radius: 4px; padding: 14px 12px 12px 22px; margin-bottom: 10px; cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,.08); min-height: 112px; transition: transform .08s ease, box-shadow .12s ease; }
-  .task-card:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,.10); }
-  .task-card:active { cursor: grabbing; }
-  .deadline-strip { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; border-radius: 4px 0 0 4px; background: #a1a1aa; }
+  .task-card { position: relative; background: white; border: 1px solid #dddde3; border-radius: 12px; padding: 16px 14px 14px 28px; margin-bottom: 10px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.07); transition: transform .08s ease, box-shadow .12s ease; }
+  .task-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.10); }
+  .deadline-strip { position: absolute; left: 0; top: 0; bottom: 0; width: 10px; border-radius: 12px 0 0 12px; background: #a1a1aa; }
   .strip-gray { background: #a1a1aa; }
   .strip-green { background: #22c55e; }
   .strip-yellow { background: #facc15; }
   .strip-orange { background: #fb923c; }
   .strip-red { background: #ef4444; }
-  .task-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
-  .task-title { font-size: 16px; font-weight: 900; line-height: 1.25; margin: 0 0 12px; }
+  .task-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .task-title { font-size: var(--fs-subheading); font-weight: var(--fw-black); line-height: 1.3; margin: 0 0 3px; }
+  .task-brand { font-size: var(--fs-caption); color: #71717a; font-weight: var(--fw-semi); margin-bottom: 10px; }
+  .task-assignee { display: flex; align-items: center; gap: 5px; font-size: var(--fs-caption); font-weight: var(--fw-semi); color: #52525b; margin-bottom: 12px; }
+  .assignee-avatar { width: 20px; height: 20px; border-radius: 50%; background: #e4e4e7; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: var(--fw-black); color: #71717a; flex-shrink: 0; }
+  .assignee-avatar.assigned { background: #d1fae5; color: #065f46; }
+  .task-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid #f4f4f5; padding-top: 10px; }
+  .task-deadline { font-size: var(--fs-caption); color: #71717a; }
+  .task-icons { display: flex; gap: 10px; align-items: center; }
   .task-meta { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; font-size: 14px; color: #3f3f46; }
-  .task-icon { display: inline-flex; align-items: center; gap: 5px; font-weight: 800; white-space: nowrap; position: relative; }
+  .task-icon { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-caption); font-weight: var(--fw-bold); color: #52525b; white-space: nowrap; position: relative; }
+  .card-status-select { border: 1px solid; font-size: 11px; font-weight: var(--fw-bold); cursor: pointer; padding: 3px 6px; border-radius: 8px; outline: none; max-width: 116px; }
+  .card-status-select.s-todo { background: #f4f4f5; color: #52525b; border-color: #d4d4d8; }
+  .card-status-select.s-inprogress { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+  .card-status-select.s-forreview { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+  .card-status-select.s-forrevision { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+  .card-status-select.s-done { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
   .comment-badge { position: absolute; right: -8px; top: -9px; min-width: 17px; height: 17px; border-radius: 999px; background: #ef4444; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; border: 2px solid white; }
   .dashboard-toolbar { display: grid; grid-template-columns: minmax(260px, 1fr) 180px 180px; gap: 10px; margin-bottom: 16px; }
   .detail-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, .8fr); gap: 18px; }
@@ -216,6 +232,11 @@ const css = `
   .revision-dialog-textarea { width: 100%; min-height: 100px; border-radius: 10px; border: 1.5px solid #e5e7eb; padding: 12px 14px; font-size: 14px; font-family: inherit; resize: vertical; margin: 10px 0 16px; box-sizing: border-box; }
   .revision-dialog-textarea:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
   .revision-dialog-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 9999; pointer-events: none; }
+  .toast { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 12px; font-size: var(--fs-body); font-weight: var(--fw-semi); box-shadow: 0 8px 24px rgba(0,0,0,.15); min-width: 220px; animation: toast-in .15s ease; }
+  .toast.success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+  .toast.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+  @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   @media (max-width: 1000px) { .grid, .detail-grid, .dashboard-toolbar { grid-template-columns: 1fr; } .sticky { position: static; } .board { grid-template-columns: repeat(5, 260px); } }
   @media (max-width: 620px) { .row, .three-row { grid-template-columns: 1fr; } .task-meta { grid-template-columns: 1fr auto auto; gap: 8px; } }
 `;
@@ -971,16 +992,28 @@ function RequestReviewModal({ form, ai, onCancel, onSubmit }) {
   );
 }
 
-function TaskCard({ request, onOpen, onDragStart }) {
+const STATUS_CLASS = {
+  "To Do": "s-todo",
+  "In Progress": "s-inprogress",
+  "For Review": "s-forreview",
+  "For Revision": "s-forrevision",
+  "Done": "s-done",
+};
+
+function TaskCard({ request, onOpen, onStatusChange }) {
   const meta = deadlineMeta(request.form.deadline);
   const deliverables = request.form.deliverables || [];
   const done = deliverables.filter((d) => d.status === "Done").length;
   const total = deliverables.length;
+  const assignedTo = request.form.assignedTo || "Unassigned";
+  const isAssigned = assignedTo !== "Unassigned";
+  const initials = isAssigned
+    ? assignedTo.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
+    : "?";
+
   return (
     <div
       className="task-card"
-      draggable
-      onDragStart={(e) => onDragStart(e, request.id)}
       onClick={() => onOpen(request.id)}
       role="button"
       tabIndex={0}
@@ -988,20 +1021,39 @@ function TaskCard({ request, onOpen, onDragStart }) {
     >
       <span className={`deadline-strip ${meta.strip}`} />
       <div className="task-top">
-        <span className={`pill ${request.form.outputMode === "Motion" ? "purple" : "blue"}`}>{request.form.outputMode}</span>
-        <button className="btn ghost" type="button" onClick={(e) => e.stopPropagation()}>•••</button>
+        <span className={`pill ${request.form.outputMode === "Motion" ? "purple" : "blue"}`} style={{ fontSize: 11, padding: "3px 8px" }}>
+          {request.form.outputMode}
+        </span>
+        <select
+          className={`card-status-select ${STATUS_CLASS[request.status] || "s-todo"}`}
+          value={request.status}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => { e.stopPropagation(); onStatusChange(request.id, e.target.value); }}
+        >
+          {STATUS_COLUMNS.map((s) => <option key={s}>{s}</option>)}
+        </select>
       </div>
       <h3 className="task-title">{request.form.title || "Untitled Request"}</h3>
-      <div className="task-meta">
-        <span>◷ {formatDateTime(request.createdAt)} → {formatDate(request.form.deadline)}</span>
-        <span className="task-icon">☑ {done}/{total || 0}</span>
-        <span className="task-icon">💬 {request.comments?.length || 0}{request.unreadComments > 0 && <span className="comment-badge">{request.unreadComments}</span>}</span>
+      <div className="task-brand">{request.form.brand}</div>
+      <div className="task-assignee">
+        <span className={`assignee-avatar ${isAssigned ? "assigned" : ""}`}>{initials}</span>
+        {assignedTo}
+      </div>
+      <div className="task-footer">
+        <span className="task-deadline">{formatDate(request.form.deadline) || "No deadline"}</span>
+        <div className="task-icons">
+          <span className="task-icon">☑ {done}/{total || 0}</span>
+          <span className="task-icon">
+            💬 {request.comments?.length || 0}
+            {request.unreadComments > 0 && <span className="comment-badge">{request.unreadComments}</span>}
+          </span>
+        </div>
       </div>
     </div>
   );
 }
 
-function TaskModal({ request, setRequests, onClose, onDelete }) {
+function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast }) {
   const [commentText, setCommentText] = useState("");
   const [commentType, setCommentType] = useState("General");
   const [generatedPrompt, setGeneratedPrompt] = useState("");
@@ -1037,10 +1089,9 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
           activity: [makeActivity("Revision note added", revisionNote.trim()), ...(next.activity || [])],
         };
       }
-      supabase.from("requests").upsert({ id: next.id, data: next })
-        .then(({ error }) => { if (error) console.error("[Supabase] status sync failed:", error.message); });
       return next;
     }));
+    onToast?.("Status updated to " + status);
   };
 
   const changeTaskStatus = (status) => {
@@ -1341,6 +1392,7 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
                 </div>) : <p className="muted">No activity yet.</p>}
               </div>
 
+              <button className="btn secondary" style={{ width: "100%", marginBottom: 8 }} onClick={() => { onClose(); onEdit(request.id); }}>Edit Request</button>
               <button className="btn danger" style={{ width: "100%" }} onClick={() => onDelete(request.id)}>Delete Request</button>
             </aside>
           </div>
@@ -1369,6 +1421,56 @@ function TaskModal({ request, setRequests, onClose, onDelete }) {
   );
 }
 
+function AppHeader({ view, onCreateRequest, onDashboard }) {
+  return (
+    <div className="header">
+      <div className="header-inner">
+        <div>
+          <h2 style={{ margin: 0, fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)" }}>Creative Request Builder</h2>
+          <div className="muted small">Request intake → AI brief → task dashboard</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <button className={`btn ${view === "builder" ? "" : "secondary"}`} onClick={onCreateRequest}>Create Request</button>
+          <button className={`btn ${view === "dashboard" ? "" : "secondary"}`} onClick={onDashboard}>Dashboard</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Toast({ toasts }) {
+  if (!toasts.length) return null;
+  return (
+    <div className="toast-container">
+      {toasts.map((t) => (
+        <div key={t.id} className={`toast ${t.type}`}>
+          {t.type === "success" ? "✓" : "✕"} {t.message}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DeleteConfirmModal({ onConfirm, onCancel }) {
+  return (
+    <div className="modal-bg" onClick={onCancel}>
+      <div className="modal" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <strong>Delete Request</strong>
+          <button className="btn ghost" onClick={onCancel}>✕</button>
+        </div>
+        <div className="modal-body">
+          <p style={{ margin: "0 0 20px", color: "#52525b" }}>This will permanently delete the request and all its data. This cannot be undone.</p>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button className="btn secondary" onClick={onCancel}>Cancel</button>
+            <button className="btn" style={{ background: "#991b1b", borderColor: "#991b1b", color: "white" }} onClick={onConfirm}>Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CreativeBriefBuilderPrototype() {
   const [view, setView] = useState("builder");
   const [form, setForm] = useState(blankForm);
@@ -1376,12 +1478,14 @@ export default function CreativeBriefBuilderPrototype() {
   const [ai, setAi] = useState(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
-  const [dragId, setDragId] = useState(null);
-  const [dragOverStatus, setDragOverStatus] = useState(null);
   const [filters, setFilters] = useState({ search: "", assignedTo: "" });
   const [loading, setLoading] = useState(true);
   const [boardRevision, setBoardRevision] = useState(null);
   const [boardRevisionNote, setBoardRevisionNote] = useState("");
+  const [toasts, setToasts] = useState([]);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [debouncedDetails, setDebouncedDetails] = useState(form.requestDetails);
   const mounted = useRef(false);
   const prevRequests = useRef([]);
   const isRealtime = useRef(false);
@@ -1446,34 +1550,67 @@ export default function CreativeBriefBuilderPrototype() {
   }, [requests]);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
-  const output = useMemo(() => generateOutput(form), [form]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedDetails(form.requestDetails), 300);
+    return () => clearTimeout(timer);
+  }, [form.requestDetails]);
+
+  const output = useMemo(() => generateOutput({ ...form, requestDetails: debouncedDetails }), [form, debouncedDetails]);
   const selectedRequest = useMemo(() => requests.find((r) => r.id === selectedId) || null, [requests, selectedId]);
+
+  const addToast = (message, type = "success") => {
+    const id = uid("TOAST");
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
+  };
 
   const resetBuilder = () => {
     setForm(blankForm);
     setAi(null);
     setReviewOpen(false);
     setSelectedId(null);
+    setEditingId(null);
     setView("builder");
   };
 
   const submitRequest = () => {
     const nextAi = ai || output;
-    const record = normalizeRequest({
-      id: uid(),
-      createdAt: new Date().toISOString(),
-      status: "To Do",
-      form: { ...form },
-      ai: nextAi,
-      comments: [],
-      unreadComments: 0,
-      activity: [makeActivity(`${form.requestor || "Current User"} submitted the request`)],
-    });
-    setRequests((prev) => [record, ...prev]);
+    if (editingId) {
+      setRequests((prev) => prev.map((r) => {
+        if (r.id !== editingId) return r;
+        return { ...r, form: { ...form }, ai: nextAi, activity: [makeActivity("Request edited"), ...(r.activity || [])] };
+      }));
+      addToast("Request updated successfully");
+    } else {
+      const record = normalizeRequest({
+        id: uid(),
+        createdAt: new Date().toISOString(),
+        status: "To Do",
+        form: { ...form },
+        ai: nextAi,
+        comments: [],
+        unreadComments: 0,
+        activity: [makeActivity(`${form.requestor || "Current User"} submitted the request`)],
+      });
+      setRequests((prev) => [record, ...prev]);
+      addToast("Request submitted successfully");
+    }
     setForm(blankForm);
     setAi(null);
     setReviewOpen(false);
+    setEditingId(null);
     setView("dashboard");
+  };
+
+  const startEditRequest = (id) => {
+    const req = requests.find((r) => r.id === id);
+    if (!req) return;
+    setForm(req.form);
+    setAi(req.ai || null);
+    setEditingId(id);
+    setSelectedId(null);
+    setView("builder");
   };
 
   const openReview = () => {
@@ -1493,12 +1630,6 @@ export default function CreativeBriefBuilderPrototype() {
     return acc;
   }, {});
 
-  const handleDragStart = (e, id) => {
-    setDragId(id);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", id);
-  };
-
   const applyBoardDrop = (id, status, revisionNote) => {
     setRequests((prev) => prev.map((r) => {
       if (r.id !== id || r.status === status) return r;
@@ -1512,23 +1643,20 @@ export default function CreativeBriefBuilderPrototype() {
           activity: [makeActivity("Revision note added", revisionNote.trim()), ...(updated.activity || [])],
         };
       }
-      supabase.from("requests").upsert({ id: updated.id, data: updated })
-        .then(({ error }) => { if (error) console.error("[Supabase] status sync failed:", error.message); });
       return updated;
     }));
+    addToast("Status updated to " + status);
   };
 
-  const dropOnStatus = (status) => {
-    const id = dragId;
-    if (!id) return;
-    setDragId(null);
-    setDragOverStatus(null);
-    if (status === "For Revision") {
+  const onCardStatusChange = (id, newStatus) => {
+    const req = requests.find((r) => r.id === id);
+    if (!req || req.status === newStatus) return;
+    if (newStatus === "For Revision") {
       setBoardRevisionNote("");
-      setBoardRevision({ id, status });
+      setBoardRevision({ id, status: newStatus });
       return;
     }
-    applyBoardDrop(id, status, "");
+    applyBoardDrop(id, newStatus, "");
   };
 
   const openTask = (id) => {
@@ -1537,25 +1665,15 @@ export default function CreativeBriefBuilderPrototype() {
   };
 
   const deleteRequest = (id) => {
-    if (!window.confirm("Delete request?")) return;
-    setRequests((prev) => prev.filter((r) => r.id !== id));
-    setSelectedId(null);
+    setDeleteConfirmId(id);
   };
 
-  const Header = () => (
-    <div className="header">
-      <div className="header-inner">
-        <div>
-          <h2 style={{ margin: 0 }}>Creative Request Builder</h2>
-          <div className="muted small">Request intake → AI organized brief → draggable task dashboard</div>
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <button className={`btn ${view === "builder" ? "" : "secondary"}`} onClick={resetBuilder}>Create Request</button>
-          <button className={`btn ${view === "dashboard" ? "" : "secondary"}`} onClick={() => setView("dashboard")}>Dashboard</button>
-        </div>
-      </div>
-    </div>
-  );
+  const confirmDelete = () => {
+    setRequests((prev) => prev.filter((r) => r.id !== deleteConfirmId));
+    setSelectedId(null);
+    setDeleteConfirmId(null);
+    addToast("Request deleted");
+  };
 
   if (loading) return (
     <div className="app" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
@@ -1570,10 +1688,10 @@ export default function CreativeBriefBuilderPrototype() {
   return (
     <div className="app">
       <style>{css}</style>
-      <Header />
+      <AppHeader view={view} onCreateRequest={resetBuilder} onDashboard={() => setView("dashboard")} />
 
       {view === "builder" && <div className="container">
-        <div className="card"><div className="card-body"><h1 style={{ marginTop: 0 }}>Create a request</h1><p className="muted">Request details come first. Add deliverables after, then use per-deliverable notes only when a material needs special handling.</p></div></div>
+        <div className="card"><div className="card-body"><h1 style={{ marginTop: 0, fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)" }}>{editingId ? "Edit Request" : "Create a Request"}</h1><p className="muted">Request details come first. Add deliverables after, then use per-deliverable notes only when a material needs special handling.</p></div></div>
         <div className="grid">
           <main>
             <Section n="1" title="Request Info">
@@ -1609,7 +1727,7 @@ export default function CreativeBriefBuilderPrototype() {
 
       {view === "dashboard" && <div className="container">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-          <div><h1 style={{ margin: 0 }}>Dashboard</h1><p className="muted">Drag cards between columns. New submitted requests land in To Do.</p></div>
+          <div><h1 style={{ margin: 0, fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)" }}>Dashboard</h1><p className="muted">Use the dropdown on each card to change status. New requests land in To Do.</p></div>
         </div>
         <div className="dashboard-toolbar">
           <input placeholder="Search title, requestor, brand, details..." value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
@@ -1619,25 +1737,21 @@ export default function CreativeBriefBuilderPrototype() {
 
         <div className="board">
           {STATUS_COLUMNS.map((status) => (
-            <section
-              key={status}
-              className={`board-column ${dragOverStatus === status ? "drag-over" : ""}`}
-              onDragOver={(e) => { e.preventDefault(); setDragOverStatus(status); }}
-              onDragLeave={() => setDragOverStatus(null)}
-              onDrop={(e) => { e.preventDefault(); dropOnStatus(status); }}
-            >
+            <section key={status} className="board-column">
               <div className="column-header">
                 <div className="column-title">{status} <span className="count">{grouped[status]?.length || 0}</span></div>
                 {status === "To Do" && <button className="btn ghost" title="Create request" onClick={resetBuilder}>＋</button>}
               </div>
-              {grouped[status]?.map((request) => <TaskCard key={request.id} request={request} onOpen={openTask} onDragStart={handleDragStart} />)}
+              {grouped[status]?.map((request) => <TaskCard key={request.id} request={request} onOpen={openTask} onStatusChange={onCardStatusChange} />)}
             </section>
           ))}
         </div>
       </div>}
 
       {reviewOpen && <RequestReviewModal form={form} ai={ai || output} onCancel={() => setReviewOpen(false)} onSubmit={submitRequest} />}
-      {selectedRequest && <TaskModal request={selectedRequest} setRequests={setRequests} onClose={() => setSelectedId(null)} onDelete={deleteRequest} />}
+      {selectedRequest && <TaskModal request={selectedRequest} setRequests={setRequests} onClose={() => setSelectedId(null)} onDelete={deleteRequest} onEdit={startEditRequest} onToast={addToast} />}
+      {deleteConfirmId && <DeleteConfirmModal onConfirm={confirmDelete} onCancel={() => setDeleteConfirmId(null)} />}
+      <Toast toasts={toasts} />
       {boardRevision && (
         <div className="revision-dialog-overlay" onClick={() => setBoardRevision(null)}>
           <div className="revision-dialog" onClick={(e) => e.stopPropagation()}>
