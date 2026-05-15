@@ -130,7 +130,7 @@ const css = `
   .assignee-avatar { width: 20px; height: 20px; border-radius: 50%; background: #e4e4e7; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: var(--fw-black); color: #71717a; flex-shrink: 0; }
   .assignee-avatar.assigned { background: #d1fae5; color: #065f46; }
   .task-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid #f4f4f5; padding-top: 10px; }
-  .task-deadline { font-size: var(--fs-caption); font-weight: var(--fw-semi); }
+  .task-deadline { font-size: var(--fs-caption); font-weight: var(--fw-semi); display: inline-flex; align-items: center; gap: 4px; }
   .task-deadline.dl-overdue { color: #dc2626; }
   .task-deadline.dl-soon { color: #d97706; }
   .task-deadline.dl-safe { color: #16a34a; }
@@ -145,7 +145,7 @@ const css = `
   .card-status-select.s-forrevision { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
   .card-status-select.s-done { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
   .card-status-select option { background: white; color: #18181b; }
-  .unread-dot { position: absolute; top: 12px; right: 12px; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
+  .unread-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 999px; background: #ef4444; color: white; font-size: 10px; font-weight: 900; padding: 0 5px; }
   .dashboard-toolbar { display: grid; grid-template-columns: minmax(260px, 1fr) 180px 180px; gap: 10px; margin-bottom: 16px; }
   .detail-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, .8fr); gap: 18px; }
   .info-box { border: 1px solid #e4e4e7; border-radius: 14px; padding: 12px; background: #fafafa; margin-bottom: 12px; }
@@ -1037,7 +1037,6 @@ function TaskCard({ request, onOpen, onStatusChange }) {
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter") onOpen(request.id); }}
     >
-      {request.unreadComments > 0 && <span className="unread-dot" />}
       <div className="task-top">
         <span className={`pill ${request.form.outputMode === "Motion" ? "purple" : "blue"}`} style={{ fontSize: 11, padding: "3px 8px" }}>
           {request.form.outputMode}
@@ -1058,9 +1057,16 @@ function TaskCard({ request, onOpen, onStatusChange }) {
         {assignedTo}
       </div>
       <div className="task-footer">
-        <span className={`task-deadline ${dlClass}`}>{formatDate(request.form.deadline) || "No deadline"}</span>
+        <span className={`task-deadline ${dlClass}`}>
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
+            <circle cx="6" cy="6" r="5"/>
+            <path d="M6 3.5V6l1.5 1.5"/>
+          </svg>
+          {formatDate(request.form.deadline) || "No deadline"}
+        </span>
         <div className="task-icons">
           <span className="task-icon">☑ {done}/{total || 0}</span>
+          {request.unreadComments > 0 && <span className="unread-badge">{request.unreadComments}</span>}
         </div>
       </div>
     </div>
