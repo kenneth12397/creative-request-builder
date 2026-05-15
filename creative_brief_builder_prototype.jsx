@@ -1066,7 +1066,7 @@ function TaskCard({ request, onOpen, onStatusChange }) {
         </span>
         <div className="task-icons">
           <span className="task-icon">☑ {done}/{total || 0}</span>
-          {request.unreadComments > 0 && <span className="unread-badge">{request.unreadComments}</span>}
+          {(request.comments?.length > 0) && <span className="unread-badge">{request.comments.length}</span>}
         </div>
       </div>
     </div>
