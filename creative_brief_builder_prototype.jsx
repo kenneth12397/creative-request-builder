@@ -238,9 +238,29 @@ const css = `
   .toast.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
   @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   .tm-deadline-chip { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border: 1px solid #e4e4e7; border-radius: 10px; margin-bottom: 12px; }
+  .tm-deadline-chip.chip-overdue { background: #fef2f2; border-color: #fecaca; }
+  .tm-deadline-chip.chip-soon { background: #fffbeb; border-color: #fde68a; }
+  .tm-deadline-chip.chip-safe { background: #ecfdf5; border-color: #a7f3d0; }
   .tm-deadline-date { font-size: 14px; font-weight: 800; color: #18181b; }
   .tm-comments-scroll { max-height: 260px; overflow-y: auto; padding-right: 2px; }
   .tm-activity-scroll { max-height: 200px; overflow-y: auto; padding-right: 2px; }
+  .modal-aside { background: #f4f4f5; border-radius: 16px; overflow: hidden; }
+  .modal-aside .info-box { background: transparent; border: none; border-radius: 0; border-bottom: 1px solid #e4e4e7; padding: 14px 16px; margin-bottom: 0; }
+  .modal-aside .info-box:last-child { border-bottom: none; }
+  .modal-status-select { width: 100%; border: 1.5px solid; border-radius: 10px; padding: 9px 12px; font-size: var(--fs-body); font-weight: var(--fw-bold); cursor: pointer; outline: none; }
+  .modal-status-select:focus { box-shadow: 0 0 0 3px rgba(139,92,246,.12); }
+  .modal-status-select.s-todo { background: #f4f4f5; color: #52525b; border-color: #d4d4d8; }
+  .modal-status-select.s-inprogress { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+  .modal-status-select.s-forreview { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+  .modal-status-select.s-forrevision { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+  .modal-status-select.s-done { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+  .del-progress-bar { height: 4px; background: #e4e4e7; border-radius: 99px; overflow: hidden; margin: 0 0 12px; }
+  .del-progress-fill { height: 100%; border-radius: 99px; transition: width .35s ease; background: #22c55e; }
+  .ctype-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+  .ctype-btn { border: 1px solid #e4e4e7; background: white; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 800; cursor: pointer; color: #71717a; transition: all .12s; line-height: 1.5; }
+  .ctype-btn:hover { border-color: #a1a1aa; color: #3f3f46; }
+  .ctype-btn.active { background: #18181b; color: white; border-color: #18181b; }
+  .ctype-btn.active-revision { background: #991b1b; color: white; border-color: #991b1b; }
   @media (max-width: 1000px) { .grid, .detail-grid, .dashboard-toolbar { grid-template-columns: 1fr; } .sticky { position: static; } .board { grid-template-columns: repeat(5, 260px); } }
   @media (max-width: 620px) { .row, .three-row { grid-template-columns: 1fr; } .task-meta { grid-template-columns: 1fr auto auto; gap: 8px; } }
 `;
@@ -1217,7 +1237,7 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
               <span className={`pill ${meta.badge}`} style={{ fontSize: 11, padding: "3px 8px" }}>{request.status}</span>
               <span className="muted small">{request.form.brand} · {request.form.outputMode}{request.form.requestor ? ` · by ${request.form.requestor}` : ""}</span>
             </div>
-            <h2 style={{ margin: "0 0 5px", fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)", lineHeight: 1.2 }}>
+            <h2 style={{ margin: "0 0 5px", fontSize: 22, fontWeight: "var(--fw-black)", lineHeight: 1.2 }}>
               {request.form.title || "Untitled Request"}
             </h2>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1259,10 +1279,15 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
               </div>
 
               <div className="info-box">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                   <div className="field-label" style={{ marginBottom: 0 }}>Deliverables</div>
-                  <span style={{ fontSize: "var(--fs-caption)", color: "#71717a" }}>{doneCount}/{deliverables.length} done</span>
+                  <span style={{ fontSize: "var(--fs-caption)", color: "#71717a", fontWeight: "var(--fw-bold)" }}>{doneCount}/{deliverables.length} done</span>
                 </div>
+                {deliverables.length > 0 && (
+                  <div className="del-progress-bar">
+                    <div className="del-progress-fill" style={{ width: `${Math.round((doneCount / deliverables.length) * 100)}%` }} />
+                  </div>
+                )}
                 <div className="del-list">
                   {deliverables.map(d => (
                     <div key={d.id}>
@@ -1374,11 +1399,11 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
               </div>
             </main>
 
-            {/* ── Right sidebar: controls + references + capped comments + capped activity ── */}
-            <aside>
+            {/* ── Right sidebar: unified property panel ── */}
+            <aside className="modal-aside">
               <div className="info-box">
                 <div className="field-label">Task Controls</div>
-                <div className="tm-deadline-chip">
+                <div className={`tm-deadline-chip ${meta.days === null ? "" : meta.days < 0 ? "chip-overdue" : meta.days <= 7 ? "chip-soon" : "chip-safe"}`}>
                   <span className="tm-deadline-date">📅 {formatDateFull(request.form.deadline)}</span>
                   {meta.days !== null && (
                     <span className={`pill ${meta.badge}`} style={{ fontSize: 11, padding: "2px 7px" }}>
@@ -1386,8 +1411,22 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
                     </span>
                   )}
                 </div>
-                <div style={{ marginBottom: 10 }}><label>Status</label><select value={request.status} onChange={(e) => changeTaskStatus(e.target.value)}>{STATUS_COLUMNS.map((s) => <option key={s}>{s}</option>)}</select></div>
-                <div><label>Assigned To</label><select value={request.form.assignedTo || "Unassigned"} onChange={(e) => changeAssignee(e.target.value)}>{DESIGNERS.map((d) => <option key={d}>{d}</option>)}</select></div>
+                <div style={{ marginBottom: 10 }}>
+                  <label>Status</label>
+                  <select
+                    className={`modal-status-select ${STATUS_CLASS[request.status] || "s-todo"}`}
+                    value={request.status}
+                    onChange={(e) => changeTaskStatus(e.target.value)}
+                  >
+                    {STATUS_COLUMNS.map((s) => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label>Assigned To</label>
+                  <select value={request.form.assignedTo || "Unassigned"} onChange={(e) => changeAssignee(e.target.value)}>
+                    {DESIGNERS.map((d) => <option key={d}>{d}</option>)}
+                  </select>
+                </div>
                 {request.form.requestor && <p className="small muted" style={{ marginTop: 8, marginBottom: 0 }}>Requested by: <strong>{request.form.requestor}</strong></p>}
               </div>
 
@@ -1419,11 +1458,19 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
                     ))}
                   </div>
                 )}
-                {!request.comments?.length && <p className="muted small" style={{ marginBottom: 10 }}>No comments yet.</p>}
-                <div style={{ borderTop: "1px solid #f4f4f5", paddingTop: 10, marginTop: request.comments?.length ? 8 : 0 }}>
-                  <div className="row" style={{ marginBottom: 8 }}>
-                    <select value={commentType} onChange={(e) => setCommentType(e.target.value)}>{COMMENT_TYPES.map((type) => <option key={type}>{type}</option>)}</select>
-                    <button className="btn secondary" style={{ fontSize: "var(--fs-small)" }} onClick={() => setCommentType("Revision")}>Revision</button>
+                {!request.comments?.length && <p className="muted small" style={{ marginBottom: 8 }}>No comments yet.</p>}
+                <div style={{ borderTop: "1px solid #e4e4e7", paddingTop: 10, marginTop: request.comments?.length ? 8 : 0 }}>
+                  <div className="ctype-row">
+                    {COMMENT_TYPES.map(type => (
+                      <button
+                        key={type}
+                        type="button"
+                        className={`ctype-btn${commentType === type ? (type === "Revision" ? " active-revision" : " active") : ""}`}
+                        onClick={() => setCommentType(type)}
+                      >
+                        {type}
+                      </button>
+                    ))}
                   </div>
                   <textarea style={{ minHeight: 64, marginBottom: 8 }} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add comment or revision note..." />
                   <button className="btn" style={{ width: "100%" }} onClick={addComment}>Add Comment</button>
