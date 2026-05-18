@@ -96,7 +96,7 @@ const css = `
   .choice-wrap { position: relative; }
   .choice-tip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #18181b; color: #fff; font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 8px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s 0s; z-index: 10; }
   .choice-tip::after { content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #18181b; }
-  .choice-wrap:hover .choice-tip { opacity: 1; transition: opacity 0.15s 2s; }
+  .choice-wrap:hover .choice-tip { opacity: 1; transition: opacity 0.15s 1s; }
   .choice.active { background: #18181b; color: white; border-color: #18181b; }
   .composer { border: 1px dashed #d4d4d8; border-radius: 16px; background: #fbfbfd; padding: 12px; }
   .suggestions { display: grid; gap: 8px; margin-top: 10px; }
