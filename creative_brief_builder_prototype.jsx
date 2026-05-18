@@ -149,7 +149,7 @@ const css = `
   .card-status-select option { background: white; color: #18181b; }
   .unread-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 999px; background: #ef4444; color: white; font-size: 10px; font-weight: 900; padding: 0 5px; }
   .dashboard-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-  .dashboard-toolbar select { width: auto; flex-shrink: 0; }
+  .dashboard-toolbar select { width: auto; flex-shrink: 0; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 34px; }
   .toolbar-search { position: relative; flex: 1; }
   .toolbar-search input { padding-left: 38px; padding-right: 36px; }
   .toolbar-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #a1a1aa; pointer-events: none; display: flex; }
@@ -1951,7 +1951,7 @@ export default function CreativeBriefBuilderPrototype() {
               )}
             </div>
             <select value={filters.assignedTo} onChange={(e) => setFilters({ ...filters, assignedTo: e.target.value })}>
-              <option value="">All assignees</option>
+              <option value="">Assignee</option>
               {DESIGNERS.map((d) => <option key={d}>{d}</option>)}
             </select>
           </div>
