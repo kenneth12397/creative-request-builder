@@ -108,7 +108,7 @@ const css = `
   .thumb { width: 64px; height: 64px; border-radius: 12px; border: 1px solid #e4e4e7; object-fit: cover; background: #f4f4f5; }
   .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.48); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 99; }
   .modal { background: white; border-radius: 20px; width: 100%; max-width: 680px; max-height: 88vh; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.28); display: flex; flex-direction: column; }
-  .modal.large { max-width: 960px; height: 88vh; }
+  .modal.large { max-width: 960px; height: min(88vh, 800px); }
   .modal-header { padding: 18px 20px; border-bottom: 1px solid #e4e4e7; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: white; flex-shrink: 0; }
   .modal-body { padding: 20px; overflow: hidden; flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .upload-zone { border: 1.5px dashed #a1a1aa; border-radius: 18px; min-height: 160px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 22px; background: #fafafa; }
@@ -275,9 +275,9 @@ const css = `
   .tm-feed-tab:hover { color: #18181b; }
   .tm-feed-tab.active { color: #18181b; border-bottom-color: #7c3aed; }
   .tm-feed-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 16px; display: flex; flex-direction: column; gap: 0; }
-  .tm-feed-compose { border-top: 1px solid #e4e4e7; padding: 12px 16px; flex-shrink: 0; }
+  .tm-feed-compose { border-top: 1px solid #e4e4e7; padding: 10px 14px; flex-shrink: 0; }
   .modal-aside { background: #f4f4f5; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
-  .modal-aside .info-box { background: transparent; border: none; border-radius: 0; border-bottom: 1px solid #e4e4e7; padding: 14px 16px; margin-bottom: 0; }
+  .modal-aside .info-box { background: transparent; border: none; border-radius: 0; border-bottom: 1px solid #e4e4e7; padding: 10px 14px; margin-bottom: 0; }
   .modal-aside .info-box:last-child { border-bottom: none; }
   .modal-status-select { width: 100%; border: 1.5px solid; border-radius: 10px; padding: 9px 12px; font-size: var(--fs-body); font-weight: var(--fw-bold); cursor: pointer; outline: none; }
   .modal-status-select:focus { box-shadow: 0 0 0 3px rgba(139,92,246,.12); }
@@ -1554,8 +1554,8 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
                       )}
                     </div>
                     <div className="tm-feed-compose">
-                      <textarea style={{ minHeight: 64, marginBottom: 8 }} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add a comment..." />
-                      <button className="btn" style={{ width: "100%" }} onClick={addComment}>Add Comment</button>
+                      <textarea style={{ minHeight: 52, marginBottom: 6, fontSize: 13 }} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add a comment..." />
+                      <button className="btn" style={{ width: "100%", padding: "8px 14px", fontSize: 13 }} onClick={addComment}>Add Comment</button>
                     </div>
                   </>
                 )}
