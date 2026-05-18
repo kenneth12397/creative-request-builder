@@ -1799,6 +1799,9 @@ export default function CreativeBriefBuilderPrototype() {
     setReviewOpen(true);
   };
 
+  const activeRequests = requests.filter((r) => !r.archivedAt);
+  const archivedRequests = requests.filter((r) => !!r.archivedAt);
+
   const dashStats = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1825,9 +1828,6 @@ export default function CreativeBriefBuilderPrototype() {
     setRequests((prev) => prev.map((r) => r.id !== id ? r : { ...r, archivedAt: null }));
     addToast("Request restored");
   };
-
-  const activeRequests = requests.filter((r) => !r.archivedAt);
-  const archivedRequests = requests.filter((r) => !!r.archivedAt);
 
   const filteredRequests = activeRequests.filter((r) => {
     const q = filters.search.toLowerCase();
