@@ -1765,42 +1765,44 @@ function CreateRequestModal({ form, setForm, editingId, onClose, onReview }) {
           </div>
         </div>
         <div className="modal-body">
-          <Section n="1" title="Request Info">
-            <div className="row">
-              <Field label="Project title"><input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="e.g. Monitor Topper — KonKon Promo" /></Field>
-              <Field label="Brand"><select value={form.brand} onChange={(e) => update("brand", e.target.value)}><option>LakiWin</option><option>VikingFunLand</option><option>RAC PH</option><option>Other Brand</option></select></Field>
-            </div>
-            <div className="row">
-              <Field label="Date needed"><input type="date" value={form.deadline} onChange={(e) => update("deadline", e.target.value)} style={{ colorScheme: "light" }} /></Field>
-              <Field label="Requested by"><select value={form.requestor} onChange={(e) => update("requestor", e.target.value)}><option value="">Select requestor</option>{REQUESTORS.map((person) => <option key={person}>{person}</option>)}</select></Field>
-            </div>
-            <Field label="Output type">
-              <div className="choice-grid">
-                {[
-                  { key: "Static", desc: "Still images — posters, banners, social posts" },
-                  { key: "Motion", desc: "Animated assets — videos, GIFs, motion graphics" },
-                ].map(({ key, desc }) => (
-                  <div key={key} className="choice-wrap">
-                    <button type="button" className={`choice ${form.outputMode === key ? "active" : ""}`} onClick={() => update("outputMode", key)} style={{ width: "100%" }}>{key}</button>
-                    <div className="choice-tip">{desc}</div>
-                  </div>
-                ))}
+          <div style={{ overflowY: "auto", flex: 1, minHeight: 0 }}>
+            <Section n="1" title="Request Info">
+              <div className="row">
+                <Field label="Project title"><input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="e.g. Monitor Topper — KonKon Promo" /></Field>
+                <Field label="Brand"><select value={form.brand} onChange={(e) => update("brand", e.target.value)}><option>LakiWin</option><option>VikingFunLand</option><option>RAC PH</option><option>Other Brand</option></select></Field>
               </div>
-            </Field>
-          </Section>
+              <div className="row">
+                <Field label="Date needed"><input type="date" value={form.deadline} onChange={(e) => update("deadline", e.target.value)} style={{ colorScheme: "light" }} /></Field>
+                <Field label="Requested by"><select value={form.requestor} onChange={(e) => update("requestor", e.target.value)}><option value="">Select requestor</option>{REQUESTORS.map((person) => <option key={person}>{person}</option>)}</select></Field>
+              </div>
+              <Field label="Output type">
+                <div className="choice-grid">
+                  {[
+                    { key: "Static", desc: "Still images — posters, banners, social posts" },
+                    { key: "Motion", desc: "Animated assets — videos, GIFs, motion graphics" },
+                  ].map(({ key, desc }) => (
+                    <div key={key} className="choice-wrap">
+                      <button type="button" className={`choice ${form.outputMode === key ? "active" : ""}`} onClick={() => update("outputMode", key)} style={{ width: "100%" }}>{key}</button>
+                      <div className="choice-tip">{desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </Field>
+            </Section>
 
-          <Section n="2" title="Request Details">
-            <p className="muted" style={{ marginTop: 0 }}>Describe what needs to be made — include copy, key elements, and any mandatory requirements.</p>
-            <textarea value={form.requestDetails} onChange={(e) => update("requestDetails", e.target.value)} onFocus={() => setDetailsFocused(true)} onBlur={() => setDetailsFocused(false)} placeholder={detailsFocused ? "" : DETAILS_PLACEHOLDER} style={{ minHeight: 155 }} />
-          </Section>
+            <Section n="2" title="Request Details">
+              <p className="muted" style={{ marginTop: 0 }}>Describe what needs to be made — include copy, key elements, and any mandatory requirements.</p>
+              <textarea value={form.requestDetails} onChange={(e) => update("requestDetails", e.target.value)} onFocus={() => setDetailsFocused(true)} onBlur={() => setDetailsFocused(false)} placeholder={detailsFocused ? "" : DETAILS_PLACEHOLDER} style={{ minHeight: 155 }} />
+            </Section>
 
-          <Section n="3" title="Sizes">
-            <DeliverableComposer form={form} setForm={setForm} />
-          </Section>
+            <Section n="3" title="Sizes">
+              <DeliverableComposer form={form} setForm={setForm} />
+            </Section>
 
-          <Section n="4" title="References">
-            <ReferenceUploader form={form} setForm={setForm} />
-          </Section>
+            <Section n="4" title="References">
+              <ReferenceUploader form={form} setForm={setForm} />
+            </Section>
+          </div>
         </div>
       </div>
     </div>
