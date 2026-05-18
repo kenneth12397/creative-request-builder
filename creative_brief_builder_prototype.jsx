@@ -93,6 +93,10 @@ const css = `
   .sticky { position: sticky; top: 92px; }
   .choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
   .choice { text-align: left; border: 1px solid #d4d4d8; border-radius: 14px; padding: 13px; background: #fff; cursor: pointer; font-weight: 850; }
+  .choice-wrap { position: relative; }
+  .choice-tip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #18181b; color: #fff; font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 8px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s 0s; z-index: 10; }
+  .choice-tip::after { content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #18181b; }
+  .choice-wrap:hover .choice-tip { opacity: 1; transition: opacity 0.15s 2s; }
   .choice.active { background: #18181b; color: white; border-color: #18181b; }
   .composer { border: 1px dashed #d4d4d8; border-radius: 16px; background: #fbfbfd; padding: 12px; }
   .suggestions { display: grid; gap: 8px; margin-top: 10px; }
@@ -1636,7 +1640,19 @@ function CreateRequestModal({ form, setForm, editingId, onClose, onReview }) {
               <Field label="Date needed"><input type="date" value={form.deadline} onChange={(e) => update("deadline", e.target.value)} /></Field>
               <Field label="Requested by"><select value={form.requestor} onChange={(e) => update("requestor", e.target.value)}><option value="">Select requestor</option>{REQUESTORS.map((person) => <option key={person}>{person}</option>)}</select></Field>
             </div>
-            <Field label="Output type"><div className="choice-grid">{["Static", "Motion"].map((m) => <button key={m} type="button" className={`choice ${form.outputMode === m ? "active" : ""}`} onClick={() => update("outputMode", m)}>{m}</button>)}</div></Field>
+            <Field label="Output type">
+              <div className="choice-grid">
+                {[
+                  { key: "Static", desc: "Still images — posters, banners, social posts" },
+                  { key: "Motion", desc: "Animated assets — videos, GIFs, motion graphics" },
+                ].map(({ key, desc }) => (
+                  <div key={key} className="choice-wrap">
+                    <button type="button" className={`choice ${form.outputMode === key ? "active" : ""}`} onClick={() => update("outputMode", key)} style={{ width: "100%" }}>{key}</button>
+                    <div className="choice-tip">{desc}</div>
+                  </div>
+                ))}
+              </div>
+            </Field>
           </Section>
 
           <Section n="2" title="Request Details">
