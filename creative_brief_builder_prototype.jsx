@@ -65,7 +65,7 @@ const css = `
   .card-header { padding: 16px 18px; border-bottom: 1px solid #f1f1f1; font-weight: 800; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .card-title { display: flex; align-items: center; gap: 10px; }
   .card-body { padding: 18px; }
-  .section-num { width: 26px; height: 26px; border-radius: 999px; background: #18181b; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; flex: 0 0 auto; }
+  .section-num { width: 28px; height: 28px; border-radius: 999px; background: #7c3aed; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: var(--fw-black); flex: 0 0 auto; box-shadow: 0 2px 6px rgba(124,58,237,0.3); }
   label, .field-label { font-size: var(--fs-caption); font-weight: var(--fw-bold); display: block; margin-bottom: 6px; color: #71717a; text-transform: uppercase; letter-spacing: .04em; }
   input, textarea, select { width: 100%; border: 1px solid #d4d4d8; border-radius: 12px; padding: 10px 12px; font-size: 14px; outline: none; background: white; color: #18181b; }
   textarea { min-height: 110px; resize: vertical; line-height: 1.45; }
@@ -1415,12 +1415,12 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                   <button
-                    className="btn purple"
+                    className="btn secondary"
                     type="button"
-                    style={{ flex: 1 }}
                     onClick={() => setGeneratedPrompt(buildComprehensivePrompt(request.form, ai))}
+                    style={{ fontSize: "var(--fs-small)", padding: "8px 16px" }}
                   >
-                    Generate
+                    Generate prompt
                   </button>
                   {generatedPrompt && (
                     <button
@@ -1637,7 +1637,7 @@ function CreateRequestModal({ form, setForm, editingId, onClose, onReview }) {
               <Field label="Brand"><select value={form.brand} onChange={(e) => update("brand", e.target.value)}><option>LakiWin</option><option>VikingFunLand</option><option>RAC PH</option><option>Other Brand</option></select></Field>
             </div>
             <div className="row">
-              <Field label="Date needed"><input type="date" value={form.deadline} onChange={(e) => update("deadline", e.target.value)} /></Field>
+              <Field label="Date needed"><input type="date" value={form.deadline} onChange={(e) => update("deadline", e.target.value)} style={{ colorScheme: "light" }} /></Field>
               <Field label="Requested by"><select value={form.requestor} onChange={(e) => update("requestor", e.target.value)}><option value="">Select requestor</option>{REQUESTORS.map((person) => <option key={person}>{person}</option>)}</select></Field>
             </div>
             <Field label="Output type">
@@ -1937,7 +1937,7 @@ export default function CreativeBriefBuilderPrototype() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
               {[
                 { label: "Active", value: dashStats.active, accent: "#52525b", bg: "#f4f4f5" },
-                { label: "To Do", value: dashStats.toDo, accent: "#94a3b8", bg: "#f1f5f9" },
+                { label: "To Do", value: dashStats.toDo, accent: "#0891b2", bg: "#ecfeff" },
                 { label: "In Progress", value: dashStats.inProgress, accent: "#3b82f6", bg: "#eff6ff" },
                 { label: "For Revision", value: dashStats.forRevision, accent: "#ea580c", bg: "#fff7ed" },
               ].map(({ label, value, accent, bg }) => (
@@ -1949,9 +1949,9 @@ export default function CreativeBriefBuilderPrototype() {
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 4, marginBottom: 16, borderBottom: "2px solid #e4e4e7", paddingBottom: 0 }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 16, background: "#f4f4f5", borderRadius: 12, padding: 4, width: "fit-content" }}>
           {[{ key: "active", label: "Active" }, { key: "archived", label: `Archived (${archivedRequests.length})` }].map(({ key, label }) => (
-            <button key={key} onClick={() => setBoardView(key)} style={{ background: "none", border: "none", cursor: "pointer", padding: "8px 16px", fontWeight: boardView === key ? "var(--fw-black)" : "var(--fw-normal)", color: boardView === key ? "#18181b" : "#71717a", borderBottom: boardView === key ? "2px solid #18181b" : "2px solid transparent", marginBottom: -2, fontSize: "var(--fs-body)", transition: "all 0.15s" }}>{label}</button>
+            <button key={key} onClick={() => setBoardView(key)} style={{ background: boardView === key ? "#fff" : "transparent", border: "none", cursor: "pointer", padding: "7px 18px", fontWeight: boardView === key ? "var(--fw-black)" : "var(--fw-normal)", color: boardView === key ? "#18181b" : "#71717a", borderRadius: 9, fontSize: "var(--fs-small)", boxShadow: boardView === key ? "0 1px 4px rgba(0,0,0,0.08)" : "none", transition: "all 0.15s" }}>{label}</button>
           ))}
         </div>
 
@@ -1979,7 +1979,10 @@ export default function CreativeBriefBuilderPrototype() {
                   {status === "To Do" && <button className="btn ghost" title="Create request" onClick={resetBuilder}>＋</button>}
                 </div>
                 <div style={{ height: 3, borderRadius: 2, background: STATUS_ACCENT[status], marginBottom: 10 }} />
-                {grouped[status]?.map((request) => <TaskCard key={request.id} request={request} onOpen={openTask} onStatusChange={onCardStatusChange} />)}
+                {grouped[status]?.length === 0
+                  ? <div style={{ border: "1.5px dashed #d4d4d8", borderRadius: 14, padding: "28px 16px", textAlign: "center", color: "#a1a1aa", fontSize: "var(--fs-small)" }}>No requests here</div>
+                  : grouped[status].map((request) => <TaskCard key={request.id} request={request} onOpen={openTask} onStatusChange={onCardStatusChange} />)
+                }
               </section>
             ))}
           </div>
