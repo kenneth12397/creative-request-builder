@@ -1123,7 +1123,7 @@ function TaskCard({ request, onOpen, onStatusChange }) {
   );
 }
 
-function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast }) {
+function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, onArchive }) {
   const [commentText, setCommentText] = useState("");
   const [commentType, setCommentType] = useState("General");
   const [generatedPrompt, setGeneratedPrompt] = useState("");
@@ -1281,6 +1281,7 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast })
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
             <button className="btn secondary" style={{ fontSize: "var(--fs-small)", padding: "8px 14px" }} onClick={() => { onClose(); onEdit(request.id); }}>Edit</button>
+            {normalizeStatus(request.status) === "Done" && <button className="btn secondary" style={{ fontSize: "var(--fs-small)", padding: "8px 14px" }} onClick={() => onArchive(request.id)}>Archive</button>}
             <button className="btn danger" style={{ fontSize: "var(--fs-small)", padding: "8px 14px" }} onClick={() => onDelete(request.id)}>Delete</button>
             <button className="btn ghost" onClick={onClose} style={{ fontSize: 20, lineHeight: 1, padding: "6px 10px" }}>×</button>
           </div>
@@ -1666,6 +1667,7 @@ export default function CreativeBriefBuilderPrototype() {
   const [toasts, setToasts] = useState([]);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [boardView, setBoardView] = useState("active");
   const [debouncedDetails, setDebouncedDetails] = useState(form.requestDetails);
   const mounted = useRef(false);
   const prevRequests = useRef([]);
@@ -1800,20 +1802,34 @@ export default function CreativeBriefBuilderPrototype() {
   const dashStats = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const overdue = requests.filter((r) => {
+    const overdue = activeRequests.filter((r) => {
       if (r.status === "Done" || !r.form.deadline) return false;
       const d = new Date(`${r.form.deadline}T00:00:00`);
       return !isNaN(d.getTime()) && d < today;
     }).length;
     return {
-      total: requests.length,
+      total: activeRequests.length,
       overdue,
-      forRevision: requests.filter((r) => normalizeStatus(r.status) === "For Revision").length,
-      done: requests.filter((r) => normalizeStatus(r.status) === "Done").length,
+      forRevision: activeRequests.filter((r) => normalizeStatus(r.status) === "For Revision").length,
+      done: activeRequests.filter((r) => normalizeStatus(r.status) === "Done").length,
     };
-  }, [requests]);
+  }, [activeRequests]);
 
-  const filteredRequests = requests.filter((r) => {
+  const archiveRequest = (id) => {
+    setRequests((prev) => prev.map((r) => r.id !== id ? r : { ...r, archivedAt: new Date().toISOString() }));
+    setSelectedId(null);
+    addToast("Request archived");
+  };
+
+  const restoreRequest = (id) => {
+    setRequests((prev) => prev.map((r) => r.id !== id ? r : { ...r, archivedAt: null }));
+    addToast("Request restored");
+  };
+
+  const activeRequests = requests.filter((r) => !r.archivedAt);
+  const archivedRequests = requests.filter((r) => !!r.archivedAt);
+
+  const filteredRequests = activeRequests.filter((r) => {
     const q = filters.search.toLowerCase();
     const matchesSearch = !q || `${r.form.title} ${r.form.requestor} ${r.form.brand} ${r.form.requestDetails}`.toLowerCase().includes(q);
     const matchesAssignee = !filters.assignedTo || r.form.assignedTo === filters.assignedTo;
@@ -1910,29 +1926,50 @@ export default function CreativeBriefBuilderPrototype() {
             </div>
           </div>
         </div>
-        <div className="dashboard-toolbar">
-          <input placeholder="Search title, requestor, brand, details..." value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
-          <select value={filters.assignedTo} onChange={(e) => setFilters({ ...filters, assignedTo: e.target.value })}><option value="">All assignees</option>{DESIGNERS.map((d) => <option key={d}>{d}</option>)}</select>
-          <button className="btn secondary" onClick={() => setFilters({ search: "", assignedTo: "" })}>Clear filters</button>
-        </div>
-
-        <div className="board">
-          {STATUS_COLUMNS.map((status) => (
-            <section key={status} className="board-column">
-              <div className="column-header">
-                <div className="column-title">{status} <span className="count">{grouped[status]?.length || 0}</span></div>
-                {status === "To Do" && <button className="btn ghost" title="Create request" onClick={resetBuilder}>＋</button>}
-              </div>
-              <div style={{ height: 3, borderRadius: 2, background: STATUS_ACCENT[status], marginBottom: 10 }} />
-              {grouped[status]?.map((request) => <TaskCard key={request.id} request={request} onOpen={openTask} onStatusChange={onCardStatusChange} />)}
-            </section>
+        <div style={{ display: "flex", gap: 4, marginBottom: 16, borderBottom: "2px solid #e4e4e7", paddingBottom: 0 }}>
+          {[{ key: "active", label: "Active" }, { key: "archived", label: `Archived (${archivedRequests.length})` }].map(({ key, label }) => (
+            <button key={key} onClick={() => setBoardView(key)} style={{ background: "none", border: "none", cursor: "pointer", padding: "8px 16px", fontWeight: boardView === key ? "var(--fw-black)" : "var(--fw-normal)", color: boardView === key ? "#18181b" : "#71717a", borderBottom: boardView === key ? "2px solid #18181b" : "2px solid transparent", marginBottom: -2, fontSize: "var(--fs-body)", transition: "all 0.15s" }}>{label}</button>
           ))}
         </div>
+
+        {boardView === "active" ? (<>
+          <div className="dashboard-toolbar">
+            <input placeholder="Search title, requestor, brand, details..." value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
+            <select value={filters.assignedTo} onChange={(e) => setFilters({ ...filters, assignedTo: e.target.value })}><option value="">All assignees</option>{DESIGNERS.map((d) => <option key={d}>{d}</option>)}</select>
+            <button className="btn secondary" onClick={() => setFilters({ search: "", assignedTo: "" })}>Clear filters</button>
+          </div>
+          <div className="board">
+            {STATUS_COLUMNS.map((status) => (
+              <section key={status} className="board-column">
+                <div className="column-header">
+                  <div className="column-title">{status} <span className="count">{grouped[status]?.length || 0}</span></div>
+                  {status === "To Do" && <button className="btn ghost" title="Create request" onClick={resetBuilder}>＋</button>}
+                </div>
+                <div style={{ height: 3, borderRadius: 2, background: STATUS_ACCENT[status], marginBottom: 10 }} />
+                {grouped[status]?.map((request) => <TaskCard key={request.id} request={request} onOpen={openTask} onStatusChange={onCardStatusChange} />)}
+              </section>
+            ))}
+          </div>
+        </>) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {archivedRequests.length === 0 ? (
+              <p className="muted" style={{ textAlign: "center", padding: "48px 0" }}>No archived requests yet.</p>
+            ) : archivedRequests.map((r) => (
+              <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#fff", border: "1px solid #e4e4e7", borderRadius: 12, padding: "14px 18px" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: "var(--fw-black)", fontSize: "var(--fs-body)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.form.title || "Untitled Request"}</div>
+                  <div style={{ fontSize: "var(--fs-small)", color: "#71717a" }}>{r.form.brand} · {r.form.requestor || "—"} · Archived {formatDate(r.archivedAt?.slice(0, 10))}</div>
+                </div>
+                <button className="btn secondary" style={{ flexShrink: 0, fontSize: "var(--fs-small)", padding: "6px 14px" }} onClick={() => restoreRequest(r.id)}>Restore</button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {builderOpen && <CreateRequestModal form={form} setForm={setForm} editingId={editingId} onClose={() => { setBuilderOpen(false); setEditingId(null); setForm(blankForm); }} onReview={openReview} />}
       {reviewOpen && <RequestReviewModal form={form} ai={ai || output} onCancel={() => setReviewOpen(false)} onSubmit={submitRequest} />}
-      {selectedRequest && <TaskModal request={selectedRequest} setRequests={setRequests} onClose={() => setSelectedId(null)} onDelete={deleteRequest} onEdit={startEditRequest} onToast={addToast} />}
+      {selectedRequest && <TaskModal request={selectedRequest} setRequests={setRequests} onClose={() => setSelectedId(null)} onDelete={deleteRequest} onEdit={startEditRequest} onToast={addToast} onArchive={archiveRequest} />}
       {deleteConfirmId && <DeleteConfirmModal onConfirm={confirmDelete} onCancel={() => setDeleteConfirmId(null)} />}
       <Toast toasts={toasts} />
       {boardRevision && (
