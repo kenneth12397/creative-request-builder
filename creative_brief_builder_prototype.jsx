@@ -148,7 +148,11 @@ const css = `
   .card-status-select.s-done { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
   .card-status-select option { background: white; color: #18181b; }
   .unread-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 999px; background: #ef4444; color: white; font-size: 10px; font-weight: 900; padding: 0 5px; }
-  .dashboard-toolbar { display: grid; grid-template-columns: minmax(260px, 1fr) 180px 180px; gap: 10px; margin-bottom: 16px; }
+  .dashboard-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .dashboard-toolbar select { width: auto; flex-shrink: 0; }
+  .toolbar-search { position: relative; flex: 1; }
+  .toolbar-search input { padding-left: 38px; }
+  .toolbar-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #a1a1aa; pointer-events: none; display: flex; }
   .detail-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, .8fr); gap: 18px; }
   .info-box { border: 1px solid #e4e4e7; border-radius: 14px; padding: 12px; background: #fafafa; margin-bottom: 12px; }
   .table-ish { display: grid; gap: 8px; }
@@ -1937,9 +1941,19 @@ export default function CreativeBriefBuilderPrototype() {
 
         {boardView === "active" ? (<>
           <div className="dashboard-toolbar">
-            <input placeholder="Search title, requestor, brand, details..." value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
-            <select value={filters.assignedTo} onChange={(e) => setFilters({ ...filters, assignedTo: e.target.value })}><option value="">All assignees</option>{DESIGNERS.map((d) => <option key={d}>{d}</option>)}</select>
-            <button className="btn secondary" onClick={() => setFilters({ search: "", assignedTo: "" })}>Clear filters</button>
+            <div className="toolbar-search">
+              <span className="toolbar-search-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              </span>
+              <input placeholder="Search requests..." value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
+            </div>
+            <select value={filters.assignedTo} onChange={(e) => setFilters({ ...filters, assignedTo: e.target.value })}>
+              <option value="">All assignees</option>
+              {DESIGNERS.map((d) => <option key={d}>{d}</option>)}
+            </select>
+            {(filters.search || filters.assignedTo) && (
+              <button className="btn ghost" style={{ color: "#71717a", whiteSpace: "nowrap", flexShrink: 0 }} onClick={() => setFilters({ search: "", assignedTo: "" })}>× Clear</button>
+            )}
           </div>
           <div className="board">
             {STATUS_COLUMNS.map((status) => (
