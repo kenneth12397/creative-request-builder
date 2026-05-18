@@ -7,8 +7,10 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 const MAX_REFERENCE_IMAGES = 14;
+const STORAGE_BUCKET = "reference-images";
 
 const STATUS_COLUMNS = ["To Do", "In Progress", "For Review", "For Revision", "Done"];
+const STATUS_ACCENT = { "To Do": "#94a3b8", "In Progress": "#3b82f6", "For Review": "#f59e0b", "For Revision": "#f97316", "Done": "#22c55e" };
 const DELIVERABLE_STATUSES = ["To Do", "In Progress", "For Review", "For Revision", "Done"];
 const COMMENT_TYPES = ["General", "Clarification", "Revision", "Approval"];
 const ASSET_PROMPT_TYPES = ["Key Visual", "Background", "Character / Mascot", "3D Object", "Scene Reference"];
@@ -694,15 +696,51 @@ function getSuggestions(draft) {
   return combined.slice(0, 5);
 }
 
-function readImageFiles(fileList, existing = []) {
-  const files = Array.from(fileList || []).filter((file) => file.type.startsWith("image/"));
+function resizeImage(file, maxDim = 1920, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Canvas toBlob failed")), "image/jpeg", quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Image load failed")); };
+    img.src = objectUrl;
+  });
+}
+
+async function uploadReferenceImage(imageId, filename, blob) {
+  const path = `${imageId}/${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, blob, { contentType: "image/jpeg", upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+async function deleteStorageImage(imageId, filename) {
+  const path = `${imageId}/${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  await supabase.storage.from(STORAGE_BUCKET).remove([path]);
+}
+
+async function processImageFiles(fileList, existing = []) {
+  const files = Array.from(fileList || []).filter((f) => f.type.startsWith("image/"));
   const remaining = Math.max(0, MAX_REFERENCE_IMAGES - existing.length);
-  return Promise.all(files.slice(0, remaining).map((file) => new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve({ id: uid("REF"), name: file.name, size: file.size, type: file.type, src: reader.result });
-    reader.onerror = () => resolve(null);
-    reader.readAsDataURL(file);
-  }))).then((items) => items.filter(Boolean));
+  const results = await Promise.all(files.slice(0, remaining).map(async (file) => {
+    try {
+      const imageId = uid("REF");
+      const blob = await resizeImage(file);
+      const src = await uploadReferenceImage(imageId, file.name, blob);
+      return { id: imageId, name: file.name, src };
+    } catch {
+      return null;
+    }
+  }));
+  return results.filter(Boolean);
 }
 
 
@@ -909,17 +947,26 @@ function ReferenceUploader({ form, setForm }) {
   const [open, setOpen] = useState(false);
   const [draftImages, setDraftImages] = useState(form.referenceImages || []);
   const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (open) setDraftImages(form.referenceImages || []);
   }, [open, form.referenceImages]);
 
   const addFiles = async (files) => {
-    const next = await readImageFiles(files, draftImages);
+    setUploading(true);
+    const next = await processImageFiles(files, draftImages);
     setDraftImages((prev) => [...prev, ...next].slice(0, MAX_REFERENCE_IMAGES));
+    setUploading(false);
   };
 
-  const removeImage = (id) => setDraftImages((prev) => prev.filter((img) => img.id !== id));
+  const removeImage = (id) => {
+    const img = draftImages.find((i) => i.id === id);
+    if (img && img.src && !img.src.startsWith("data:")) {
+      deleteStorageImage(img.id, img.name);
+    }
+    setDraftImages((prev) => prev.filter((i) => i.id !== id));
+  };
 
   const confirmImages = () => {
     setForm((prev) => ({ ...prev, referenceImages: draftImages }));
@@ -935,7 +982,7 @@ function ReferenceUploader({ form, setForm }) {
         {form.referenceImages.length > 5 && <span className="pill">+{form.referenceImages.length - 5}</span>}
       </div>}
       <div style={{ marginTop: 16 }}>
-        <Field label="Reference notes"><textarea value={form.referenceNotes} onChange={(e) => setForm((prev) => ({ ...prev, referenceNotes: e.target.value }))} placeholder="What should we borrow from the references? Example: Use layout and hierarchy only. Keep colors LakiWin-branded." /></Field>
+        <Field label="Reference notes"><textarea value={form.referenceNotes} onChange={(e) => setForm((prev) => ({ ...prev, referenceNotes: e.target.value }))} placeholder="What should we borrow from these references? e.g. Use the composition and hierarchy only — adapt colors to match the brand." /></Field>
       </div>
 
       {open && <div className="modal-bg" onClick={() => setOpen(false)}>
@@ -950,11 +997,14 @@ function ReferenceUploader({ form, setForm }) {
             >
               <div>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>⇧</div>
-                <strong>Drag images here</strong>
-                <p className="muted">or choose screenshots / downloaded reference images</p>
-                <label className="btn secondary" style={{ display: "inline-flex", cursor: "pointer", textTransform: "none", letterSpacing: 0, color: "#18181b" }}>
+                {uploading ? (
+                  <><strong>Uploading…</strong><p className="muted">Resizing and uploading images</p></>
+                ) : (
+                  <><strong>Drag images here</strong><p className="muted">or choose screenshots / downloaded reference images</p></>
+                )}
+                <label className="btn secondary" style={{ display: "inline-flex", cursor: uploading ? "not-allowed" : "pointer", textTransform: "none", letterSpacing: 0, color: "#18181b", opacity: uploading ? 0.5 : 1 }}>
                   Choose files
-                  <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => addFiles(e.target.files)} />
+                  <input type="file" accept="image/*" multiple style={{ display: "none" }} disabled={uploading} onChange={(e) => addFiles(e.target.files)} />
                 </label>
               </div>
             </div>
@@ -1582,8 +1632,8 @@ function CreateRequestModal({ form, setForm, editingId, onClose, onReview }) {
           </Section>
 
           <Section n="2" title="Request Details">
-            <p className="muted" style={{ marginTop: 0 }}>Paste all promo details, copy, mechanics, mandatories, and notes here.</p>
-            <textarea value={form.requestDetails} onChange={(e) => update("requestDetails", e.target.value)} placeholder={`Example:\nput KonKon's QR code.\nfeature SuperAce by JILI.\nput PAGCOR mandatories.\nshowcase LakiWin logo.`} style={{ minHeight: 155 }} />
+            <p className="muted" style={{ marginTop: 0 }}>Describe what needs to be made — include copy, key elements, and any mandatory requirements.</p>
+            <textarea value={form.requestDetails} onChange={(e) => update("requestDetails", e.target.value)} placeholder={`e.g.\nFeature the main product as the focal point.\nInclude the brand logo and campaign tagline.\nAdd QR code in the bottom-right corner.\nInclude any required regulatory or legal text.`} style={{ minHeight: 155 }} />
           </Section>
 
           <Section n="3" title="Sizes">
@@ -1795,6 +1845,12 @@ export default function CreativeBriefBuilderPrototype() {
   };
 
   const confirmDelete = () => {
+    const req = requests.find((r) => r.id === deleteConfirmId);
+    if (req) {
+      (req.form.referenceImages || []).forEach((img) => {
+        if (img.src && !img.src.startsWith("data:")) deleteStorageImage(img.id, img.name);
+      });
+    }
     setRequests((prev) => prev.filter((r) => r.id !== deleteConfirmId));
     setSelectedId(null);
     setDeleteConfirmId(null);
@@ -1833,6 +1889,7 @@ export default function CreativeBriefBuilderPrototype() {
                 <div className="column-title">{status} <span className="count">{grouped[status]?.length || 0}</span></div>
                 {status === "To Do" && <button className="btn ghost" title="Create request" onClick={resetBuilder}>＋</button>}
               </div>
+              <div style={{ height: 3, borderRadius: 2, background: STATUS_ACCENT[status], marginBottom: 10 }} />
               {grouped[status]?.map((request) => <TaskCard key={request.id} request={request} onOpen={openTask} onStatusChange={onCardStatusChange} />)}
             </section>
           ))}
