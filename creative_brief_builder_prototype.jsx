@@ -1902,9 +1902,9 @@ export default function CreativeBriefBuilderPrototype() {
                 { label: "For Revision", value: dashStats.forRevision, accent: "#ea580c", bg: "#fff7ed" },
                 { label: "Done", value: dashStats.done, accent: "#16a34a", bg: "#f0fdf4" },
               ].map(({ label, value, accent, bg }) => (
-                <div key={label} style={{ background: "#fff", border: "1px solid #e4e4e7", borderRadius: 14, padding: "16px 20px", borderLeft: `4px solid ${accent}` }}>
-                  <div style={{ fontSize: 36, fontWeight: "var(--fw-black)", color: accent, lineHeight: 1 }}>{value}</div>
-                  <div style={{ fontSize: "var(--fs-small)", color: "#71717a", marginTop: 6 }}>{label}</div>
+                <div key={label} style={{ background: accent, borderRadius: 14, padding: "16px 20px" }}>
+                  <div style={{ fontSize: 36, fontWeight: "var(--fw-black)", color: "#fff", lineHeight: 1 }}>{value}</div>
+                  <div style={{ fontSize: "var(--fs-small)", color: "rgba(255,255,255,0.75)", marginTop: 6 }}>{label}</div>
                 </div>
               ))}
             </div>
