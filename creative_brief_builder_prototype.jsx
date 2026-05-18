@@ -262,14 +262,14 @@ const css = `
   .tm-deadline-chip.chip-soon { background: #fffbeb; border-color: #fde68a; }
   .tm-deadline-chip.chip-safe { background: #ecfdf5; border-color: #a7f3d0; }
   .tm-deadline-date { font-size: 14px; font-weight: 800; color: #18181b; }
-  .tm-feed-box { padding: 0 !important; height: 460px; display: flex; flex-direction: column; }
+  .tm-feed-box { padding: 0 !important; flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .tm-feed-tabs { display: flex; border-bottom: 1px solid #e4e4e7; flex-shrink: 0; }
   .tm-feed-tab { flex: 1; background: none; border: none; border-bottom: 2px solid transparent; padding: 11px 8px 10px; font-size: var(--fs-small); font-weight: var(--fw-bold); color: #71717a; cursor: pointer; transition: color .12s, border-color .12s; margin-bottom: -1px; }
   .tm-feed-tab:hover { color: #18181b; }
   .tm-feed-tab.active { color: #18181b; border-bottom-color: #7c3aed; }
   .tm-feed-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 16px; display: flex; flex-direction: column; gap: 0; }
   .tm-feed-compose { border-top: 1px solid #e4e4e7; padding: 12px 16px; flex-shrink: 0; }
-  .modal-aside { background: #f4f4f5; border-radius: 16px; overflow: hidden; }
+  .modal-aside { background: #f4f4f5; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
   .modal-aside .info-box { background: transparent; border: none; border-radius: 0; border-bottom: 1px solid #e4e4e7; padding: 14px 16px; margin-bottom: 0; }
   .modal-aside .info-box:last-child { border-bottom: none; }
   .modal-status-select { width: 100%; border: 1.5px solid; border-radius: 10px; padding: 9px 12px; font-size: var(--fs-body); font-weight: var(--fw-bold); cursor: pointer; outline: none; }
