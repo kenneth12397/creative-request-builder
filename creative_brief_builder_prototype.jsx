@@ -1797,6 +1797,22 @@ export default function CreativeBriefBuilderPrototype() {
     setReviewOpen(true);
   };
 
+  const dashStats = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const overdue = requests.filter((r) => {
+      if (r.status === "Done" || !r.form.deadline) return false;
+      const d = new Date(`${r.form.deadline}T00:00:00`);
+      return !isNaN(d.getTime()) && d < today;
+    }).length;
+    return {
+      total: requests.length,
+      overdue,
+      forRevision: requests.filter((r) => normalizeStatus(r.status) === "For Revision").length,
+      done: requests.filter((r) => normalizeStatus(r.status) === "Done").length,
+    };
+  }, [requests]);
+
   const filteredRequests = requests.filter((r) => {
     const q = filters.search.toLowerCase();
     const matchesSearch = !q || `${r.form.title} ${r.form.requestor} ${r.form.brand} ${r.form.requestDetails}`.toLowerCase().includes(q);
@@ -1877,7 +1893,22 @@ export default function CreativeBriefBuilderPrototype() {
 
       <div className="container">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-          <div><h1 style={{ margin: 0, fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)" }}>Dashboard</h1><p className="muted">Use the dropdown on each card to change status. New requests land in To Do.</p></div>
+          <div>
+            <h1 style={{ margin: "0 0 10px", fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)" }}>Dashboard</h1>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[
+                { label: "Total", value: dashStats.total, color: "#18181b", bg: "#f4f4f5", border: "#e4e4e7" },
+                { label: "Overdue", value: dashStats.overdue, color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+                { label: "For Revision", value: dashStats.forRevision, color: "#ea580c", bg: "#fff7ed", border: "#fed7aa" },
+                { label: "Done", value: dashStats.done, color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+              ].map(({ label, value, color, bg, border }) => (
+                <div key={label} style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 12px", background: bg, border: `1px solid ${border}`, borderRadius: 99, fontSize: "var(--fs-small)" }}>
+                  <span style={{ fontWeight: "var(--fw-black)", color, fontSize: 15 }}>{value}</span>
+                  <span style={{ color: "#71717a" }}>{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="dashboard-toolbar">
           <input placeholder="Search title, requestor, brand, details..." value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
