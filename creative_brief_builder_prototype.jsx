@@ -277,8 +277,8 @@ const css = `
   .modal-status-select option { background: white; color: #18181b; }
   .del-progress-bar { height: 4px; background: #e4e4e7; border-radius: 99px; overflow: hidden; margin: 0 0 12px; }
   .del-progress-fill { height: 100%; border-radius: 99px; transition: width .35s ease; background: #22c55e; }
-  .ctype-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
-  .ctype-btn { border: 1px solid #e4e4e7; background: white; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 800; cursor: pointer; color: #71717a; transition: all .12s; line-height: 1.5; }
+  .ctype-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 10px; }
+  .ctype-btn { border: 1px solid #e4e4e7; background: white; border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 800; cursor: pointer; color: #71717a; transition: all .12s; line-height: 1.5; text-align: center; }
   .ctype-btn:hover { border-color: #a1a1aa; color: #3f3f46; }
   .ctype-btn.active { background: #18181b; color: white; border-color: #18181b; }
   .ctype-btn.active-revision { background: #991b1b; color: white; border-color: #991b1b; }
