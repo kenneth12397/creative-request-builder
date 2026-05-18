@@ -163,7 +163,6 @@ const css = `
   .table-ish { display: grid; gap: 8px; }
   .deliverable-detail { border: 1px solid #e4e4e7; border-radius: 12px; padding: 10px; background: white; }
   .comment { border-bottom: 1px solid #f1f1f1; padding: 10px 0; }
-  .comment-type { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 900; background: #f4f4f5; color: #52525b; margin-left: 6px; }
   .asset-type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 10px 0; }
   .asset-type { border: 1px solid #d4d4d8; border-radius: 12px; padding: 9px 10px; background: white; cursor: pointer; font-weight: 850; font-size: 13px; }
   .asset-type.active { background: #18181b; color: white; border-color: #18181b; }
@@ -277,11 +276,6 @@ const css = `
   .modal-status-select option { background: white; color: #18181b; }
   .del-progress-bar { height: 4px; background: #e4e4e7; border-radius: 99px; overflow: hidden; margin: 0 0 12px; }
   .del-progress-fill { height: 100%; border-radius: 99px; transition: width .35s ease; background: #22c55e; }
-  .ctype-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 10px; }
-  .ctype-btn { border: 1px solid #e4e4e7; background: white; border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 800; cursor: pointer; color: #71717a; transition: all .12s; line-height: 1.5; text-align: center; }
-  .ctype-btn:hover { border-color: #a1a1aa; color: #3f3f46; }
-  .ctype-btn.active { background: #18181b; color: white; border-color: #18181b; }
-  .ctype-btn.active-revision { background: #991b1b; color: white; border-color: #991b1b; }
   @media (max-width: 1000px) { .grid, .detail-grid, .dashboard-toolbar { grid-template-columns: 1fr; } .sticky { position: static; } .board { grid-template-columns: repeat(5, 260px); } }
   @media (max-width: 620px) { .row, .three-row { grid-template-columns: 1fr; } .task-meta { grid-template-columns: 1fr auto auto; gap: 8px; } }
 `;
@@ -1139,7 +1133,6 @@ function TaskCard({ request, onOpen, onStatusChange }) {
 
 function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, onArchive }) {
   const [commentText, setCommentText] = useState("");
-  const [commentType, setCommentType] = useState("General");
   const [commentTab, setCommentTab] = useState("comments");
   const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [delExpandedNotes, setDelExpandedNotes] = useState({});
@@ -1263,12 +1256,12 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
   const addComment = () => {
     const body = commentText.trim();
     if (!body) return;
-    const nextComment = { id: uid("COM"), type: commentType, author: "Current User", body, createdAt: new Date().toISOString() };
+    const nextComment = { id: uid("COM"), author: "Current User", body, createdAt: new Date().toISOString() };
     setRequests((prev) => prev.map((r) => r.id === request.id ? {
       ...r,
       comments: [...(r.comments || []), nextComment],
       unreadComments: 0,
-      activity: [makeActivity(`${commentType} comment added`, body), ...(r.activity || [])],
+      activity: [makeActivity("Comment added", body), ...(r.activity || [])],
     } : r));
     setCommentText("");
     setCommentType("General");
@@ -1511,7 +1504,6 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
                       {request.comments?.length > 0 ? request.comments.map((c) => (
                         <div className="comment" key={c.id}>
                           <strong style={{ fontSize: "var(--fs-small)" }}>{c.author}</strong>
-                          <span className="comment-type">{c.type || "General"}</span>
                           <br />
                           <span style={{ fontSize: "var(--fs-body)" }}>{c.body}</span>
                           <br />
@@ -1522,19 +1514,7 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
                       )}
                     </div>
                     <div className="tm-feed-compose">
-                      <div className="ctype-row">
-                        {COMMENT_TYPES.map(type => (
-                          <button
-                            key={type}
-                            type="button"
-                            className={`ctype-btn${commentType === type ? (type === "Revision" ? " active-revision" : " active") : ""}`}
-                            onClick={() => setCommentType(type)}
-                          >
-                            {type}
-                          </button>
-                        ))}
-                      </div>
-                      <textarea style={{ minHeight: 64, marginBottom: 8 }} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add comment or revision note..." />
+                      <textarea style={{ minHeight: 64, marginBottom: 8 }} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add a comment..." />
                       <button className="btn" style={{ width: "100%" }} onClick={addComment}>Add Comment</button>
                     </div>
                   </>
