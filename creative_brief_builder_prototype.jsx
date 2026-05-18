@@ -162,12 +162,18 @@ const css = `
   .info-box { border: 1px solid #e4e4e7; border-radius: 14px; padding: 12px; background: #fafafa; margin-bottom: 12px; }
   .table-ish { display: grid; gap: 8px; }
   .deliverable-detail { border: 1px solid #e4e4e7; border-radius: 12px; padding: 10px; background: white; }
-  .comment { padding: 10px 0; border-bottom: 1px solid #f1f1f1; }
+  .comment { padding: 9px 0; border-bottom: 1px solid #f1f1f1; display: flex; gap: 9px; align-items: flex-start; }
   .comment:last-child { border-bottom: none; }
-  .feed-row-header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+  .comment-avatar { width: 26px; height: 26px; border-radius: 50%; background: #7c3aed; color: #fff; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .comment-content { flex: 1; min-width: 0; }
+  .activity-item { padding: 7px 0; border-bottom: 1px solid #f1f1f1; display: flex; gap: 10px; align-items: flex-start; }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .activity-content { flex: 1; min-width: 0; }
+  .feed-row-header { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 2px; }
   .feed-row-title { font-size: 12px; font-weight: 800; color: #18181b; }
   .feed-time { font-size: 11px; color: #a1a1aa; white-space: nowrap; flex-shrink: 0; }
-  .feed-row-body { font-size: 13px; color: #3f3f46; line-height: 1.5; }
+  .feed-row-body { font-size: 12px; color: #71717a; line-height: 1.5; }
   .asset-type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 10px 0; }
   .asset-type { border: 1px solid #d4d4d8; border-radius: 12px; padding: 9px 10px; background: white; cursor: pointer; font-weight: 850; font-size: 13px; }
   .asset-type.active { background: #18181b; color: white; border-color: #18181b; }
@@ -344,6 +350,19 @@ function formatActivityTime(iso) {
 
 function makeActivity(action, detail = "", actor = "Current User") {
   return { id: uid("ACT"), action, detail, actor, createdAt: new Date().toISOString() };
+}
+
+function getActivityDot(action = "") {
+  if (action.includes("Revision") || action.includes("revision")) return "#f97316";
+  if (action.includes("Comment") || action.includes("comment")) return "#6366f1";
+  if (action.includes("Moved") || action.includes("moved") || action.includes("Status")) return "#3b82f6";
+  if (action.includes("submitted")) return "#22c55e";
+  if (action.includes("edited")) return "#8b5cf6";
+  return "#a1a1aa";
+}
+
+function getInitials(name = "") {
+  return name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || "?";
 }
 
 
@@ -1511,11 +1530,14 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
                     <div className="tm-feed-scroll">
                       {request.comments?.length > 0 ? request.comments.map((c) => (
                         <div className="comment" key={c.id}>
-                          <div className="feed-row-header">
-                            <span className="feed-row-title">{c.author}</span>
-                            <span className="feed-time">{formatActivityTime(c.createdAt)}</span>
+                          <div className="comment-avatar">{getInitials(c.author)}</div>
+                          <div className="comment-content">
+                            <div className="feed-row-header">
+                              <span className="feed-row-title">{c.author}</span>
+                              <span className="feed-time">{formatActivityTime(c.createdAt)}</span>
+                            </div>
+                            <div className="feed-row-body">{c.body}</div>
                           </div>
-                          <div className="feed-row-body">{c.body}</div>
                         </div>
                       )) : (
                         <p className="muted small" style={{ margin: "10px 0" }}>No comments yet.</p>
@@ -1532,11 +1554,14 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
                   <div className="tm-feed-scroll">
                     {request.activity?.length > 0 ? request.activity.map((item) => (
                       <div className="activity-item" key={item.id}>
-                        <div className="feed-row-header">
-                          <span className="feed-row-title">{item.action}</span>
-                          <span className="feed-time">{formatActivityTime(item.createdAt)}</span>
+                        <div className="activity-dot" style={{ background: getActivityDot(item.action) }} />
+                        <div className="activity-content">
+                          <div className="feed-row-header">
+                            <span className="feed-row-title">{item.action}</span>
+                            <span className="feed-time">{formatActivityTime(item.createdAt)}</span>
+                          </div>
+                          {item.detail && <div className="feed-row-body">{item.detail}</div>}
                         </div>
-                        {item.detail && <div className="feed-row-body muted">{item.detail}</div>}
                       </div>
                     )) : (
                       <p className="muted small" style={{ margin: "10px 0" }}>No activity yet.</p>
@@ -1804,7 +1829,7 @@ export default function CreativeBriefBuilderPrototype() {
         ai: nextAi,
         comments: [],
         unreadComments: 0,
-        activity: [makeActivity(`${form.requestor || "Current User"} submitted the request`)],
+        activity: [makeActivity("Request submitted", form.requestor || "")],
       });
       setRequests((prev) => [record, ...prev]);
       addToast("Request submitted successfully");
@@ -1878,7 +1903,7 @@ export default function CreativeBriefBuilderPrototype() {
   const applyBoardDrop = (id, status, revisionNote) => {
     setRequests((prev) => prev.map((r) => {
       if (r.id !== id || r.status === status) return r;
-      let updated = { ...r, status, activity: [makeActivity(`Request moved from ${r.status} → ${status}`), ...(r.activity || [])] };
+      let updated = { ...r, status, activity: [makeActivity(`Moved to ${status}`, `from ${r.status}`), ...(r.activity || [])] };
       if (revisionNote.trim()) {
         const revisionComment = { id: uid("COM"), type: "Revision", author: "Current User", body: revisionNote.trim(), createdAt: new Date().toISOString() };
         updated = {
