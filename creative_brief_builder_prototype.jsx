@@ -1971,7 +1971,10 @@ export default function CreativeBriefBuilderPrototype() {
                     <div style={{ fontWeight: "var(--fw-black)", fontSize: "var(--fs-body)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.form.title || "Untitled Request"}</div>
                     <div style={{ fontSize: "var(--fs-small)", color: "#71717a" }}>{r.form.brand} · {r.form.requestor || "—"} · Archived {formatDate(r.archivedAt?.slice(0, 10))}</div>
                   </div>
-                  <button className="btn secondary" style={{ flexShrink: 0, fontSize: "var(--fs-small)", padding: "6px 14px" }} onClick={(e) => { e.stopPropagation(); restoreRequest(r.id); }}>Restore</button>
+                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                    <button className="btn secondary" style={{ fontSize: "var(--fs-small)", padding: "6px 14px" }} onClick={() => restoreRequest(r.id)}>Restore</button>
+                    <button className="btn danger" style={{ fontSize: "var(--fs-small)", padding: "6px 14px" }} onClick={() => setDeleteConfirmId(r.id)}>Delete</button>
+                  </div>
                 </div>
               ));
             })()}
