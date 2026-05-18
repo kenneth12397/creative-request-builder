@@ -51,34 +51,44 @@ const blankForm = {
 
 const css = `
   :root {
-    --fs-heading: 20px; --fs-subheading: 15px; --fs-body: 14px; --fs-small: 13px; --fs-caption: 12px;
-    --fw-black: 900; --fw-bold: 800; --fw-semi: 600; --fw-regular: 400;
+    --brand: #7c3aed; --brand-dark: #6d28d9; --brand-mid: #ede9fe; --brand-light: #f5f3ff;
+    --fs-display: 28px; --fs-heading: 20px; --fs-subheading: 15px; --fs-body: 14px; --fs-small: 13px; --fs-caption: 12px;
+    --fw-black: 900; --fw-bold: 800; --fw-semi: 600; --fw-normal: 400; --fw-regular: 400;
+    --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px;
+    --shadow-xs: 0 1px 2px rgba(0,0,0,.05); --shadow-sm: 0 2px 6px rgba(0,0,0,.07); --shadow-md: 0 8px 24px rgba(0,0,0,.1);
+    --border: #e4e4e7; --surface: #f5f5f7;
   }
   * { box-sizing: border-box; }
   body { margin: 0; }
-  .app { min-height: 100vh; background: #f4f4f5; color: #18181b; font-family: Inter, Arial, sans-serif; }
-  .header { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.94); border-bottom: 1px solid #e4e4e7; backdrop-filter: blur(8px); }
-  .header-inner { max-width: 1240px; margin: 0 auto; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
-  .container { max-width: 1240px; margin: 0 auto; padding: 20px; }
+  .app { min-height: 100vh; background: var(--surface); color: #18181b; font-family: Inter, Arial, sans-serif; }
+  .header { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.97); border-bottom: 1px solid #e8e8ec; backdrop-filter: blur(12px); }
+  .header-inner { max-width: 1240px; margin: 0 auto; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  .header-brand { display: flex; align-items: center; gap: 12px; }
+  .header-logo-mark { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(145deg, #8b5cf6 0%, #7c3aed 60%, #6d28d9 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(124,58,237,.35), 0 0 0 1px rgba(124,58,237,.15); }
+  .header-title { font-size: 15.5px; font-weight: 900; color: #18181b; line-height: 1.25; }
+  .header-sub { font-size: 11px; color: #a1a1aa; margin-top: 1px; font-weight: 500; letter-spacing: .01em; }
+  .container { max-width: 1240px; margin: 0 auto; padding: 24px 20px; }
   .grid { display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 20px; align-items: start; }
-  .card { background: white; border: 1px solid #e4e4e7; border-radius: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.05); margin-bottom: 16px; }
-  .card-header { padding: 16px 18px; border-bottom: 1px solid #f1f1f1; font-weight: 800; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .card { background: white; border: 1px solid #e6e6ea; border-radius: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.02); margin-bottom: 16px; }
+  .card-header { padding: 15px 18px; border-bottom: 1px solid #f0f0f2; font-weight: 800; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; }
   .card-title { display: flex; align-items: center; gap: 10px; }
   .card-body { padding: 18px; }
   .section-num { width: 28px; height: 28px; border-radius: 999px; background: #7c3aed; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: var(--fw-black); flex: 0 0 auto; box-shadow: 0 2px 6px rgba(124,58,237,0.3); }
   label, .field-label { font-size: var(--fs-caption); font-weight: var(--fw-bold); display: block; margin-bottom: 6px; color: #71717a; text-transform: uppercase; letter-spacing: .04em; }
-  input, textarea, select { width: 100%; border: 1px solid #d4d4d8; border-radius: 12px; padding: 10px 12px; font-size: 14px; outline: none; background: white; color: #18181b; }
+  input, textarea, select { width: 100%; border: 1px solid #d4d4d8; border-radius: 12px; padding: 10px 12px; font-size: 14px; outline: none; background: white; color: #18181b; transition: border-color .15s, box-shadow .15s; }
   textarea { min-height: 110px; resize: vertical; line-height: 1.45; }
   input:focus, textarea:focus, select:focus { border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139,92,246,.12); }
   .modal input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
   .field { margin-bottom: 14px; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .three-row { display: grid; grid-template-columns: 1fr 1fr 100px; gap: 10px; }
-  .btn { border: 0; border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 850; cursor: pointer; background: #18181b; color: #fff; transition: transform .08s ease, opacity .12s ease; }
-  .btn:hover { transform: translateY(-1px); }
+  .btn { border: 0; border-radius: 12px; padding: 10px 16px; font-size: 14px; font-weight: 800; cursor: pointer; background: #18181b; color: #fff; transition: transform .1s ease, box-shadow .12s ease; display: inline-flex; align-items: center; gap: 7px; }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.16); }
   .btn.secondary { border: 1px solid #d4d4d8; background: white; color: #18181b; }
+  .btn.secondary:hover { background: #fafafa; border-color: #c4c4c8; }
   .btn.ghost { background: transparent; color: #18181b; padding: 6px 8px; }
-  .btn.purple { background: #7c3aed; }
+  .btn.purple { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); box-shadow: 0 2px 8px rgba(124,58,237,.25); }
+  .btn.purple:hover { box-shadow: 0 4px 14px rgba(124,58,237,.35); }
   .btn.danger { border: 1px solid #fecaca; background: white; color: #991b1b; }
   .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
   .pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #d4d4d8; border-radius: 999px; padding: 6px 10px; font-size: 13px; font-weight: 800; background: white; color: #3f3f46; line-height: 1; }
@@ -93,7 +103,8 @@ const css = `
   .success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; border-radius: 12px; padding: 11px 12px; font-size: 13px; margin-bottom: 8px; }
   .sticky { position: sticky; top: 92px; }
   .choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-  .choice { text-align: left; border: 1px solid #d4d4d8; border-radius: 14px; padding: 13px; background: #fff; cursor: pointer; font-weight: 850; }
+  .choice { text-align: left; border: 1.5px solid #e2e2e8; border-radius: 14px; padding: 13px 14px; background: #fff; cursor: pointer; font-weight: 800; font-size: 14px; transition: border-color .12s, background .12s, box-shadow .12s; }
+  .choice:hover { border-color: #a78bfa; background: #fdfcff; box-shadow: 0 2px 8px rgba(124,58,237,.08); }
   .choice-wrap { position: relative; }
   .choice-tip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #18181b; color: #fff; font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 8px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s 0s; z-index: 10; }
   .choice-tip::after { content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #18181b; }
@@ -101,13 +112,13 @@ const css = `
   .choice.active { background: #18181b; color: white; border-color: #18181b; }
   .composer { border: 1px dashed #d4d4d8; border-radius: 16px; background: #fbfbfd; padding: 12px; }
   .suggestions { display: grid; gap: 8px; margin-top: 10px; }
-  .suggestion { border: 1px solid #e4e4e7; border-radius: 12px; background: white; padding: 10px; display: flex; justify-content: space-between; gap: 10px; align-items: center; cursor: pointer; text-align: left; }
-  .suggestion:hover { border-color: #a78bfa; }
+  .suggestion { border: 1.5px solid #e6e6ea; border-radius: 12px; background: white; padding: 10px 12px; display: flex; justify-content: space-between; gap: 10px; align-items: center; cursor: pointer; text-align: left; transition: border-color .12s, box-shadow .12s; }
+  .suggestion:hover { border-color: #a78bfa; box-shadow: 0 2px 8px rgba(124,58,237,.08); }
   .reference-panel { border: 1px solid #e4e4e7; border-radius: 16px; padding: 14px; background: #fbfbfd; }
   .thumb-strip { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
   .thumb { width: 64px; height: 64px; border-radius: 12px; border: 1px solid #e4e4e7; object-fit: cover; background: #f4f4f5; }
   .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.48); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 99; }
-  .modal { background: white; border-radius: 20px; width: 100%; max-width: 680px; max-height: 88vh; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.28); display: flex; flex-direction: column; }
+  .modal { background: white; border-radius: 20px; width: 100%; max-width: 680px; max-height: 88vh; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,.2), 0 0 0 1px rgba(0,0,0,.05); display: flex; flex-direction: column; }
   .modal.large { max-width: 960px; height: min(88vh, 800px); }
   .modal-header { padding: 18px 20px; border-bottom: 1px solid #e4e4e7; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: white; flex-shrink: 0; }
   .modal-body { padding: 20px; overflow: hidden; flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -118,25 +129,26 @@ const css = `
   .thumb-card img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 10px; background: #f4f4f5; }
   .thumb-remove { position: absolute; top: 6px; right: 6px; border: 0; width: 24px; height: 24px; border-radius: 999px; background: rgba(24,24,27,.82); color: white; cursor: pointer; }
   .board { display: grid; grid-template-columns: repeat(5, minmax(210px, 1fr)); gap: 14px; align-items: start; overflow-x: auto; padding-bottom: 12px; }
-  .board-column { min-height: 520px; background: #ededf0; border: 1px solid #e4e4e7; border-radius: 18px; padding: 10px; }
-  .board-column.drag-over { outline: 3px solid rgba(139,92,246,.25); }
+  .board-column { min-height: 520px; background: #f0f0f3; border: 1px solid #e6e6ea; border-radius: 18px; padding: 10px; }
+  .board-column.drag-over { outline: 2px solid rgba(139,92,246,.3); background: #f0eeff; }
   .column-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 4px 10px; }
-  .column-title { font-weight: 900; display: flex; align-items: center; gap: 8px; }
-  .count { min-width: 24px; height: 24px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: white; border: 1px solid #d4d4d8; font-size: 12px; color: #52525b; }
-  .task-card { position: relative; background: white; border: 1px solid #dddde3; border-radius: 12px; padding: 16px 14px 14px 16px; margin-bottom: 10px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.07); transition: transform .08s ease, box-shadow .12s ease; }
-  .task-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.10); }
+  .column-title { font-size: 13px; font-weight: 900; display: flex; align-items: center; gap: 7px; letter-spacing: .01em; }
+  .count { min-width: 21px; height: 21px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.85); border: 1px solid rgba(0,0,0,.1); font-size: 11px; font-weight: 700; color: #71717a; }
+  .task-card { position: relative; background: white; border: 1px solid #e2e2e8; border-radius: 14px; padding: 14px 14px 12px 20px; margin-bottom: 9px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 0 0 1px rgba(0,0,0,.02); transition: transform .1s ease, box-shadow .12s ease; overflow: hidden; }
+  .task-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.1), 0 0 0 1px rgba(0,0,0,.04); }
+  .task-status-strip { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
   .strip-gray { background: #a1a1aa; }
   .strip-green { background: #22c55e; }
   .strip-yellow { background: #facc15; }
   .strip-orange { background: #fb923c; }
   .strip-red { background: #ef4444; }
   .task-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 8px; }
-  .task-title { font-size: var(--fs-subheading); font-weight: var(--fw-black); line-height: 1.3; margin: 0 0 3px; }
-  .task-brand { font-size: var(--fs-caption); color: #71717a; font-weight: var(--fw-semi); margin-bottom: 10px; }
-  .task-assignee { display: flex; align-items: center; gap: 5px; font-size: var(--fs-caption); font-weight: var(--fw-semi); color: #52525b; margin-bottom: 12px; }
-  .assignee-avatar { width: 20px; height: 20px; border-radius: 50%; background: #e4e4e7; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: var(--fw-black); color: #71717a; flex-shrink: 0; }
+  .task-title { font-size: 15px; font-weight: 900; line-height: 1.3; margin: 0 0 4px; color: #111; letter-spacing: -.01em; }
+  .task-brand { font-size: var(--fs-caption); color: #8a8a96; font-weight: 600; margin-bottom: 8px; letter-spacing: .01em; }
+  .task-assignee { display: flex; align-items: center; gap: 5px; font-size: var(--fs-caption); font-weight: 600; color: #52525b; margin-bottom: 11px; }
+  .assignee-avatar { width: 20px; height: 20px; border-radius: 50%; background: #ebebee; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; color: #71717a; flex-shrink: 0; }
   .assignee-avatar.assigned { background: #d1fae5; color: #065f46; }
-  .task-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid #f4f4f5; padding-top: 10px; }
+  .task-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid #f2f2f5; padding-top: 9px; }
   .task-deadline { font-size: var(--fs-caption); font-weight: var(--fw-semi); display: inline-flex; align-items: center; gap: 4px; }
   .task-deadline.dl-overdue { color: #dc2626; }
   .task-deadline.dl-soon { color: #d97706; }
@@ -144,7 +156,7 @@ const css = `
   .task-deadline.dl-none { color: #a1a1aa; }
   .task-icons { display: flex; gap: 10px; align-items: center; }
   .task-meta { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; font-size: 14px; color: #3f3f46; }
-  .task-icon { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-caption); font-weight: var(--fw-bold); color: #52525b; white-space: nowrap; position: relative; }
+  .task-icon { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: #71717a; white-space: nowrap; position: relative; }
   .card-status-select { border: 1px solid; font-size: 11px; font-weight: var(--fw-bold); cursor: pointer; padding: 3px 6px; border-radius: 8px; outline: none; max-width: 116px; }
   .card-status-select.s-todo { background: #f4f4f5; color: #52525b; border-color: #d4d4d8; }
   .card-status-select.s-inprogress { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
@@ -160,7 +172,7 @@ const css = `
   .toolbar-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #a1a1aa; pointer-events: none; display: flex; }
   .detail-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, .8fr); gap: 18px; flex: 1; min-height: 0; align-items: stretch; }
   .detail-grid > main { overflow-y: auto; min-height: 0; }
-  .info-box { border: 1px solid #e4e4e7; border-radius: 14px; padding: 12px; background: #fafafa; margin-bottom: 12px; }
+  .info-box { border: 1px solid #e8e8ec; border-radius: 14px; padding: 14px; background: #fafafa; margin-bottom: 10px; }
   .table-ish { display: grid; gap: 8px; }
   .deliverable-detail { border: 1px solid #e4e4e7; border-radius: 12px; padding: 10px; background: white; }
   .comment { padding: 9px 0; border-bottom: 1px solid #f1f1f1; display: flex; gap: 9px; align-items: flex-start; }
@@ -188,9 +200,9 @@ const css = `
   .asset-card.active .asset-card-name { color: #5b21b6; }
   .asset-card.active .asset-card-desc { color: #7c3aed; }
   .prompt-block { background: #f8fafc; color: #1e293b; border-radius: 14px; padding: 16px 18px; font-size: 13px; line-height: 1.7; max-height: 280px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; font-family: inherit; margin: 10px 0 8px; border: 1px solid #e2e8f0; }
-  .prompt-copy-btn { width: 100%; border: 0; border-radius: 12px; padding: 11px; font-size: 14px; font-weight: 850; cursor: pointer; background: #7c3aed; color: white; transition: background .15s; }
-  .prompt-copy-btn:hover { background: #6d28d9; }
-  .prompt-copy-btn.copied { background: #059669; }
+  .prompt-copy-btn { width: 100%; border: 0; border-radius: 12px; padding: 11px; font-size: 14px; font-weight: 800; cursor: pointer; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; transition: opacity .15s; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 8px rgba(124,58,237,.25); }
+  .prompt-copy-btn:hover { opacity: .88; }
+  .prompt-copy-btn.copied { background: linear-gradient(135deg, #34d399 0%, #059669 100%); box-shadow: 0 2px 8px rgba(5,150,105,.25); }
   .prompt-designer-box { border: 1.5px solid #e9d5ff; border-radius: 14px; background: #faf5ff; margin-bottom: 12px; overflow: hidden; }
   .prompt-designer-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; user-select: none; gap: 10px; }
   .prompt-designer-header:hover { background: rgba(124,58,237,.05); }
@@ -205,9 +217,9 @@ const css = `
   .del-composer { display: flex; flex-direction: column; gap: 6px; }
   .del-input-row { display: flex; gap: 6px; align-items: center; }
   .del-input-row input { flex: 1; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; width: auto; }
-  .del-input-row input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,.15); }
-  .del-add-btn { padding: 7px 14px; background: #6366f1; color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; white-space: nowrap; }
-  .del-add-btn:hover { background: #4f46e5; }
+  .del-input-row input:focus { outline: none; border-color: #8b5cf6; box-shadow: 0 0 0 2px rgba(139,92,246,.15); }
+  .del-add-btn { padding: 7px 14px; background: #7c3aed; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .del-add-btn:hover { background: #6d28d9; }
   .del-suggestions { position: absolute; z-index: 50; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.1); width: 100%; max-height: 180px; overflow-y: auto; }
   .del-suggestion-item { padding: 8px 12px; font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
   .del-suggestion-item:hover { background: #f3f4f6; }
@@ -231,7 +243,7 @@ const css = `
   .del-dropdown-item.danger { color: #dc2626; }
   .del-dropdown-item.danger:hover { background: #fef2f2; }
   .del-notes-area { width: 100%; margin-top: 4px; padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 12px; resize: vertical; min-height: 52px; box-sizing: border-box; }
-  .del-notes-area:focus { outline: none; border-color: #6366f1; }
+  .del-notes-area:focus { outline: none; border-color: #8b5cf6; box-shadow: 0 0 0 2px rgba(139,92,246,.12); }
   .del-inline-dims { display: flex; gap: 4px; align-items: center; margin-top: 4px; }
   .del-inline-dims input { width: 64px; padding: 4px 6px; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 12px; }
   .del-inline-dims select { padding: 4px 6px; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 12px; width: auto; }
@@ -263,7 +275,7 @@ const css = `
   .del-confirm-add { padding: 5px 12px; background: #16a34a; color: #fff; border: none; border-radius: 5px; font-size: 12px; cursor: pointer; }
   .del-confirm-dismiss { padding: 5px 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 5px; font-size: 12px; cursor: pointer; }
   .revision-dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  .revision-dialog { background: #fff; border-radius: 18px; padding: 28px 28px 22px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 0; }
+  .revision-dialog { background: #fff; border-radius: 20px; padding: 28px 28px 22px; width: 100%; max-width: 440px; box-shadow: 0 24px 60px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.05); display: flex; flex-direction: column; gap: 0; }
   .revision-dialog-title { font-size: 17px; font-weight: 800; color: #18181b; margin-bottom: 6px; }
   .revision-dialog-textarea { width: 100%; min-height: 100px; border-radius: 10px; border: 1.5px solid #e5e7eb; padding: 12px 14px; font-size: 14px; font-family: inherit; resize: vertical; margin: 10px 0 16px; box-sizing: border-box; }
   .revision-dialog-textarea:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
@@ -273,6 +285,7 @@ const css = `
   .toast.success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
   .toast.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
   @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   .tm-meta-box { padding: 8px 14px 10px; flex-shrink: 0; }
   .tm-meta-deadline { display: flex; align-items: center; gap: 7px; padding: 6px 9px; border-radius: 8px; background: #f8fafc; border: 1px solid #e4e4e7; margin-bottom: 8px; }
   .tm-meta-deadline.chip-overdue { background: #fef2f2; border-color: #fecaca; }
@@ -1159,6 +1172,7 @@ function TaskCard({ request, onOpen, onStatusChange }) {
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter") onOpen(request.id); }}
     >
+      <div className={`task-status-strip ${meta.strip}`} />
       <div className="task-top">
         <span className={`pill ${request.form.outputMode === "Motion" ? "purple" : "blue"}`} style={{ fontSize: 11, padding: "3px 8px" }}>
           {request.form.outputMode}
@@ -1187,7 +1201,13 @@ function TaskCard({ request, onOpen, onStatusChange }) {
           {formatDate(request.form.deadline) || "No deadline"}
         </span>
         <div className="task-icons">
-          <span className="task-icon">☑ {done}/{total || 0}</span>
+          <span className="task-icon">
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="1" width="10" height="10" rx="2.5"/>
+              {done > 0 && done === total && <path d="M3.5 6l2 2 3-3"/>}
+            </svg>
+            {done}/{total || 0}
+          </span>
           {request.unreadComments > 0 && <span className="unread-badge">{request.unreadComments}</span>}
         </div>
       </div>
@@ -1344,10 +1364,10 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
         {/* ── Sticky header: title + deadline + always-visible actions ── */}
         <div className="modal-header">
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h2 style={{ margin: "0 0 4px", fontSize: 22, fontWeight: "var(--fw-black)", lineHeight: 1.2 }}>
+            <h2 style={{ margin: "0 0 3px", fontSize: 21, fontWeight: 900, lineHeight: 1.25, letterSpacing: "-.01em", color: "#111" }}>
               {request.form.title || "Untitled Request"}
             </h2>
-            <span style={{ fontSize: "var(--fs-body)", color: "#71717a" }}>
+            <span style={{ fontSize: 13, color: "#888", fontWeight: 500 }}>
               {request.form.brand} · {request.form.outputMode}{request.form.requestor ? ` · by ${request.form.requestor}` : ""}
             </span>
           </div>
@@ -1667,11 +1687,23 @@ function AppHeader({ onCreateRequest }) {
   return (
     <div className="header">
       <div className="header-inner">
-        <div>
-          <h2 style={{ margin: 0, fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)" }}>Creative Request Builder</h2>
-          <div className="muted small">Request intake → AI brief → task dashboard</div>
+        <div className="header-brand">
+          <div className="header-logo-mark">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+              <path d="M4 10.5L8.5 15L16 6" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <div className="header-title">Creative Studio</div>
+            <div className="header-sub">Request intake · AI brief · Task board</div>
+          </div>
         </div>
-        <button className="btn" onClick={onCreateRequest}>Create Request</button>
+        <button className="btn" onClick={onCreateRequest}>
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M7 1v12M1 7h12"/>
+          </svg>
+          New Request
+        </button>
       </div>
     </div>
   );
@@ -2021,8 +2053,11 @@ export default function CreativeBriefBuilderPrototype() {
     <div className="app" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
       <style>{css}</style>
       <div style={{ textAlign: "center", color: "#71717a" }}>
-        <div style={{ fontSize: 28, marginBottom: 10 }}>⟳</div>
-        <div>Loading requests…</div>
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2.5" strokeLinecap="round" style={{ display: "block", margin: "0 auto 12px", animation: "spin .7s linear infinite" }}>
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" opacity=".6"/>
+          <path d="M12 2v4" strokeOpacity="1"/>
+        </svg>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#52525b" }}>Loading…</div>
       </div>
     </div>
   );
@@ -2035,25 +2070,25 @@ export default function CreativeBriefBuilderPrototype() {
       <div className="container">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
           <div style={{ width: "100%" }}>
-            <h1 style={{ margin: "0 0 14px", fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)" }}>Dashboard</h1>
+            <h1 style={{ margin: "0 0 16px", fontSize: "var(--fs-display)", fontWeight: "var(--fw-black)", letterSpacing: "-.02em", color: "#111" }}>Dashboard</h1>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
               {[
-                { label: "Active", value: dashStats.active, accent: "#52525b", bg: "#f4f4f5" },
-                { label: "To Do", value: dashStats.toDo, accent: "#0891b2", bg: "#ecfeff" },
-                { label: "In Progress", value: dashStats.inProgress, accent: "#3b82f6", bg: "#eff6ff" },
-                { label: "For Revision", value: dashStats.forRevision, accent: "#ea580c", bg: "#fff7ed" },
-              ].map(({ label, value, accent, bg }) => (
-                <div key={label} style={{ background: accent, borderRadius: 14, padding: "16px 20px" }}>
-                  <div style={{ fontSize: 36, fontWeight: "var(--fw-black)", color: "#fff", lineHeight: 1 }}>{value}</div>
-                  <div style={{ fontSize: "var(--fs-small)", color: "rgba(255,255,255,0.75)", marginTop: 6 }}>{label}</div>
+                { label: "Active", value: dashStats.active, accent: "#52525b" },
+                { label: "To Do", value: dashStats.toDo, accent: "#0891b2" },
+                { label: "In Progress", value: dashStats.inProgress, accent: "#3b82f6" },
+                { label: "For Revision", value: dashStats.forRevision, accent: "#ea580c" },
+              ].map(({ label, value, accent }) => (
+                <div key={label} style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accent}e8 100%)`, borderRadius: 14, padding: "16px 20px", boxShadow: `0 4px 16px ${accent}3a` }}>
+                  <div style={{ fontSize: 34, fontWeight: "var(--fw-black)", color: "#fff", lineHeight: 1 }}>{value}</div>
+                  <div style={{ fontSize: "var(--fs-small)", color: "rgba(255,255,255,0.8)", marginTop: 6, fontWeight: 600 }}>{label}</div>
                 </div>
               ))}
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 6, marginBottom: 16, background: "#f4f4f5", borderRadius: 12, padding: 4, width: "fit-content" }}>
+        <div style={{ display: "flex", gap: 4, marginBottom: 16, background: "#ebebee", borderRadius: 12, padding: 3, width: "fit-content" }}>
           {[{ key: "active", label: "Active" }, { key: "archived", label: `Archived (${archivedRequests.length})` }].map(({ key, label }) => (
-            <button key={key} onClick={() => setBoardView(key)} style={{ background: boardView === key ? "#fff" : "transparent", border: "none", cursor: "pointer", padding: "7px 18px", fontWeight: boardView === key ? "var(--fw-black)" : "var(--fw-normal)", color: boardView === key ? "#18181b" : "#71717a", borderRadius: 9, fontSize: "var(--fs-small)", boxShadow: boardView === key ? "0 1px 4px rgba(0,0,0,0.08)" : "none", transition: "all 0.15s" }}>{label}</button>
+            <button key={key} onClick={() => setBoardView(key)} style={{ background: boardView === key ? "#fff" : "transparent", border: "none", cursor: "pointer", padding: "7px 18px", fontWeight: boardView === key ? 800 : 500, color: boardView === key ? "#18181b" : "#71717a", borderRadius: 9, fontSize: "var(--fs-small)", boxShadow: boardView === key ? "0 1px 4px rgba(0,0,0,.1), 0 0 0 1px rgba(0,0,0,.04)" : "none", transition: "all 0.15s" }}>{label}</button>
           ))}
         </div>
 
@@ -2077,12 +2112,14 @@ export default function CreativeBriefBuilderPrototype() {
             {STATUS_COLUMNS.map((status) => (
               <section key={status} className="board-column">
                 <div className="column-header">
-                  <div className="column-title">{status} <span className="count">{grouped[status]?.length || 0}</span></div>
-                  {status === "To Do" && <button className="btn ghost" title="Create request" onClick={resetBuilder}>＋</button>}
+                  <div className="column-title" style={{ color: STATUS_ACCENT[status] }}>{status} <span className="count">{grouped[status]?.length || 0}</span></div>
+                  {status === "To Do" && (
+                    <button className="btn ghost" title="Create request" onClick={resetBuilder} style={{ padding: "4px 8px", fontSize: 18, lineHeight: 1, color: "#71717a" }}>+</button>
+                  )}
                 </div>
-                <div style={{ height: 3, borderRadius: 2, background: STATUS_ACCENT[status], marginBottom: 10 }} />
+                <div style={{ height: 3, borderRadius: 3, background: STATUS_ACCENT[status], marginBottom: 10, opacity: .75 }} />
                 {grouped[status]?.length === 0
-                  ? <div style={{ border: "1.5px dashed #d4d4d8", borderRadius: 14, padding: "28px 16px", textAlign: "center", color: "#a1a1aa", fontSize: "var(--fs-small)" }}>No requests here</div>
+                  ? <div style={{ border: "1.5px dashed #d0d0d8", borderRadius: 12, padding: "24px 16px", textAlign: "center", color: "#b4b4bc", fontSize: "var(--fs-small)", fontWeight: 500 }}>No requests</div>
                   : grouped[status].map((request) => <TaskCard key={request.id} request={request} onOpen={openTask} onStatusChange={onCardStatusChange} />)
                 }
               </section>
