@@ -108,9 +108,9 @@ const css = `
   .thumb { width: 64px; height: 64px; border-radius: 12px; border: 1px solid #e4e4e7; object-fit: cover; background: #f4f4f5; }
   .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.48); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 99; }
   .modal { background: white; border-radius: 20px; width: 100%; max-width: 680px; max-height: 88vh; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.28); display: flex; flex-direction: column; }
-  .modal.large { max-width: 960px; }
+  .modal.large { max-width: 960px; height: 88vh; }
   .modal-header { padding: 18px 20px; border-bottom: 1px solid #e4e4e7; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: white; flex-shrink: 0; }
-  .modal-body { padding: 20px; overflow: auto; flex: 1; display: flex; flex-direction: column; }
+  .modal-body { padding: 20px; overflow: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .upload-zone { border: 1.5px dashed #a1a1aa; border-radius: 18px; min-height: 160px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 22px; background: #fafafa; }
   .upload-zone.dragging { background: #f3e8ff; border-color: #8b5cf6; }
   .thumb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; margin-top: 16px; }
