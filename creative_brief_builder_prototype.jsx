@@ -1668,6 +1668,7 @@ export default function CreativeBriefBuilderPrototype() {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [boardView, setBoardView] = useState("active");
+  const [archiveSearch, setArchiveSearch] = useState("");
   const [debouncedDetails, setDebouncedDetails] = useState(form.requestDetails);
   const mounted = useRef(false);
   const prevRequests = useRef([]);
@@ -1814,7 +1815,7 @@ export default function CreativeBriefBuilderPrototype() {
       total: activeRequests.length,
       overdue,
       forRevision: activeRequests.filter((r) => normalizeStatus(r.status) === "For Revision").length,
-      done: activeRequests.filter((r) => normalizeStatus(r.status) === "Done").length,
+      inProgress: activeRequests.filter((r) => normalizeStatus(r.status) === "In Progress").length,
     };
   }, [activeRequests]);
 
@@ -1916,7 +1917,7 @@ export default function CreativeBriefBuilderPrototype() {
                 { label: "Total Requests", value: dashStats.total, accent: "#6366f1", bg: "#eef2ff" },
                 { label: "Overdue", value: dashStats.overdue, accent: "#dc2626", bg: "#fef2f2" },
                 { label: "For Revision", value: dashStats.forRevision, accent: "#ea580c", bg: "#fff7ed" },
-                { label: "Done", value: dashStats.done, accent: "#16a34a", bg: "#f0fdf4" },
+                { label: "In Progress", value: dashStats.inProgress, accent: "#3b82f6", bg: "#eff6ff" },
               ].map(({ label, value, accent, bg }) => (
                 <div key={label} style={{ background: accent, borderRadius: 14, padding: "16px 20px" }}>
                   <div style={{ fontSize: 36, fontWeight: "var(--fw-black)", color: "#fff", lineHeight: 1 }}>{value}</div>
@@ -1951,18 +1952,29 @@ export default function CreativeBriefBuilderPrototype() {
             ))}
           </div>
         </>) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <input
+              placeholder="Search archived requests..."
+              value={archiveSearch}
+              onChange={(e) => setArchiveSearch(e.target.value)}
+              style={{ maxWidth: 400 }}
+            />
             {archivedRequests.length === 0 ? (
               <p className="muted" style={{ textAlign: "center", padding: "48px 0" }}>No archived requests yet.</p>
-            ) : archivedRequests.map((r) => (
-              <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#fff", border: "1px solid #e4e4e7", borderRadius: 12, padding: "14px 18px" }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: "var(--fw-black)", fontSize: "var(--fs-body)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.form.title || "Untitled Request"}</div>
-                  <div style={{ fontSize: "var(--fs-small)", color: "#71717a" }}>{r.form.brand} · {r.form.requestor || "—"} · Archived {formatDate(r.archivedAt?.slice(0, 10))}</div>
+            ) : (() => {
+              const q = archiveSearch.toLowerCase();
+              const visible = archivedRequests.filter((r) => !q || `${r.form.title} ${r.form.brand} ${r.form.requestor}`.toLowerCase().includes(q));
+              if (!visible.length) return <p className="muted" style={{ textAlign: "center", padding: "48px 0" }}>No results for "{archiveSearch}".</p>;
+              return visible.map((r) => (
+                <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, background: "#fff", border: "1px solid #e4e4e7", borderRadius: 12, padding: "14px 18px", cursor: "pointer" }} onClick={() => setSelectedId(r.id)}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: "var(--fw-black)", fontSize: "var(--fs-body)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.form.title || "Untitled Request"}</div>
+                    <div style={{ fontSize: "var(--fs-small)", color: "#71717a" }}>{r.form.brand} · {r.form.requestor || "—"} · Archived {formatDate(r.archivedAt?.slice(0, 10))}</div>
+                  </div>
+                  <button className="btn secondary" style={{ flexShrink: 0, fontSize: "var(--fs-small)", padding: "6px 14px" }} onClick={(e) => { e.stopPropagation(); restoreRequest(r.id); }}>Restore</button>
                 </div>
-                <button className="btn secondary" style={{ flexShrink: 0, fontSize: "var(--fs-small)", padding: "6px 14px" }} onClick={() => restoreRequest(r.id)}>Restore</button>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
         )}
       </div>
