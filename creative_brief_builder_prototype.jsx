@@ -1915,9 +1915,9 @@ export default function CreativeBriefBuilderPrototype() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
               {[
                 { label: "Total Requests", value: dashStats.total, accent: "#52525b", bg: "#f4f4f5" },
-                { label: "Overdue", value: dashStats.overdue, accent: "#dc2626", bg: "#fef2f2" },
-                { label: "For Revision", value: dashStats.forRevision, accent: "#ea580c", bg: "#fff7ed" },
                 { label: "In Progress", value: dashStats.inProgress, accent: "#3b82f6", bg: "#eff6ff" },
+                { label: "For Revision", value: dashStats.forRevision, accent: "#ea580c", bg: "#fff7ed" },
+                { label: "Overdue", value: dashStats.overdue, accent: "#dc2626", bg: "#fef2f2" },
               ].map(({ label, value, accent, bg }) => (
                 <div key={label} style={{ background: accent, borderRadius: 14, padding: "16px 20px" }}>
                   <div style={{ fontSize: 36, fontWeight: "var(--fw-black)", color: "#fff", lineHeight: 1 }}>{value}</div>
