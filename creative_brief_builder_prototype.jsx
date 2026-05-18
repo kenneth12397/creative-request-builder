@@ -1633,7 +1633,7 @@ function CreateRequestModal({ form, setForm, editingId, onClose, onReview }) {
 
           <Section n="2" title="Request Details">
             <p className="muted" style={{ marginTop: 0 }}>Describe what needs to be made — include copy, key elements, and any mandatory requirements.</p>
-            <textarea value={form.requestDetails} onChange={(e) => update("requestDetails", e.target.value)} placeholder={`e.g.\nFeature the main product as the focal point.\nInclude the brand logo and campaign tagline.\nAdd QR code in the bottom-right corner.\nInclude any required regulatory or legal text.`} style={{ minHeight: 155 }} />
+            <textarea value={form.requestDetails} onChange={(e) => update("requestDetails", e.target.value)} placeholder={`Campaign: Mid-Year Sale — 50% off selected items\nFeatured product: [main product or promo name]\nHeadline: "Your Big Win Starts Here"\nSubtext: "Play now and claim your bonus"\nCTA: "Join Now"\n\nInclude:\n- QR code (bottom-right corner)\n- Brand logo (top-left)\n- Responsible gaming text (footer strip)\n- Any required regulatory text\n\nMood: Energetic, celebratory, premium feel\nAvoid: Dark backgrounds, overly complex layouts`} style={{ minHeight: 155 }} />
           </Section>
 
           <Section n="3" title="Sizes">
