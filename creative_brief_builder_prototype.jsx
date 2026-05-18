@@ -1816,6 +1816,8 @@ export default function CreativeBriefBuilderPrototype() {
       overdue,
       forRevision: activeRequests.filter((r) => normalizeStatus(r.status) === "For Revision").length,
       inProgress: activeRequests.filter((r) => normalizeStatus(r.status) === "In Progress").length,
+      toDo: activeRequests.filter((r) => normalizeStatus(r.status) === "To Do").length,
+      active: activeRequests.filter((r) => normalizeStatus(r.status) !== "Done").length,
     };
   }, [activeRequests]);
 
@@ -1914,10 +1916,10 @@ export default function CreativeBriefBuilderPrototype() {
             <h1 style={{ margin: "0 0 14px", fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)" }}>Dashboard</h1>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
               {[
-                { label: "Total Requests", value: dashStats.total, accent: "#52525b", bg: "#f4f4f5" },
+                { label: "Active", value: dashStats.active, accent: "#52525b", bg: "#f4f4f5" },
+                { label: "To Do", value: dashStats.toDo, accent: "#94a3b8", bg: "#f1f5f9" },
                 { label: "In Progress", value: dashStats.inProgress, accent: "#3b82f6", bg: "#eff6ff" },
                 { label: "For Revision", value: dashStats.forRevision, accent: "#ea580c", bg: "#fff7ed" },
-                { label: "Overdue", value: dashStats.overdue, accent: "#dc2626", bg: "#fef2f2" },
               ].map(({ label, value, accent, bg }) => (
                 <div key={label} style={{ background: accent, borderRadius: 14, padding: "16px 20px" }}>
                   <div style={{ fontSize: 36, fontWeight: "var(--fw-black)", color: "#fff", lineHeight: 1 }}>{value}</div>
