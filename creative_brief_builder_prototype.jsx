@@ -257,8 +257,13 @@ const css = `
   .tm-deadline-chip.chip-soon { background: #fffbeb; border-color: #fde68a; }
   .tm-deadline-chip.chip-safe { background: #ecfdf5; border-color: #a7f3d0; }
   .tm-deadline-date { font-size: 14px; font-weight: 800; color: #18181b; }
-  .tm-comments-scroll { max-height: 260px; overflow-y: auto; padding-right: 2px; }
-  .tm-activity-scroll { max-height: 200px; overflow-y: auto; padding-right: 2px; }
+  .tm-feed-box { padding: 0 !important; }
+  .tm-feed-tabs { display: flex; border-bottom: 1px solid #e4e4e7; }
+  .tm-feed-tab { flex: 1; background: none; border: none; border-bottom: 2px solid transparent; padding: 11px 8px 10px; font-size: var(--fs-small); font-weight: var(--fw-bold); color: #71717a; cursor: pointer; transition: color .12s, border-color .12s; margin-bottom: -1px; }
+  .tm-feed-tab:hover { color: #18181b; }
+  .tm-feed-tab.active { color: #18181b; border-bottom-color: #7c3aed; }
+  .tm-feed-scroll { max-height: 280px; overflow-y: auto; padding: 10px 16px; display: flex; flex-direction: column; gap: 0; }
+  .tm-feed-compose { border-top: 1px solid #e4e4e7; padding: 12px 16px; }
   .modal-aside { background: #f4f4f5; border-radius: 16px; overflow: hidden; }
   .modal-aside .info-box { background: transparent; border: none; border-radius: 0; border-bottom: 1px solid #e4e4e7; padding: 14px 16px; margin-bottom: 0; }
   .modal-aside .info-box:last-child { border-bottom: none; }
@@ -1135,6 +1140,7 @@ function TaskCard({ request, onOpen, onStatusChange }) {
 function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, onArchive }) {
   const [commentText, setCommentText] = useState("");
   const [commentType, setCommentType] = useState("General");
+  const [commentTab, setCommentTab] = useState("comments");
   const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [delExpandedNotes, setDelExpandedNotes] = useState({});
   const [addingDeliverable, setAddingDeliverable] = useState(false);
@@ -1481,46 +1487,62 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
                 </div>
               )}
 
-              <div className="info-box">
-                <div className="field-label">Comments</div>
-                {request.comments?.length > 0 && (
-                  <div className="tm-comments-scroll">
-                    {request.comments.map((c) => (
-                      <div className="comment" key={c.id}>
-                        <strong style={{ fontSize: "var(--fs-small)" }}>{c.author}</strong>
-                        <span className="comment-type">{c.type || "General"}</span>
-                        <br />
-                        <span style={{ fontSize: "var(--fs-body)" }}>{c.body}</span>
-                        <br />
-                        <small className="muted">{formatActivityTime(c.createdAt)}</small>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {!request.comments?.length && <p className="muted small" style={{ marginBottom: 8 }}>No comments yet.</p>}
-                <div style={{ borderTop: "1px solid #e4e4e7", paddingTop: 10, marginTop: request.comments?.length ? 8 : 0 }}>
-                  <div className="ctype-row">
-                    {COMMENT_TYPES.map(type => (
-                      <button
-                        key={type}
-                        type="button"
-                        className={`ctype-btn${commentType === type ? (type === "Revision" ? " active-revision" : " active") : ""}`}
-                        onClick={() => setCommentType(type)}
-                      >
-                        {type}
-                      </button>
-                    ))}
-                  </div>
-                  <textarea style={{ minHeight: 64, marginBottom: 8 }} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add comment or revision note..." />
-                  <button className="btn" style={{ width: "100%" }} onClick={addComment}>Add Comment</button>
+              <div className="info-box tm-feed-box">
+                <div className="tm-feed-tabs">
+                  <button
+                    type="button"
+                    className={`tm-feed-tab${commentTab === "comments" ? " active" : ""}`}
+                    onClick={() => setCommentTab("comments")}
+                  >
+                    Comments{request.comments?.length > 0 ? ` (${request.comments.length})` : ""}
+                  </button>
+                  <button
+                    type="button"
+                    className={`tm-feed-tab${commentTab === "activity" ? " active" : ""}`}
+                    onClick={() => setCommentTab("activity")}
+                  >
+                    Activity{request.activity?.length > 0 ? ` (${request.activity.length})` : ""}
+                  </button>
                 </div>
-              </div>
 
-              <div className="info-box">
-                <div className="field-label">Activity</div>
-                {request.activity?.length > 0 ? (
-                  <div className="tm-activity-scroll">
-                    {request.activity.map((item) => (
+                {commentTab === "comments" && (
+                  <>
+                    <div className="tm-feed-scroll">
+                      {request.comments?.length > 0 ? request.comments.map((c) => (
+                        <div className="comment" key={c.id}>
+                          <strong style={{ fontSize: "var(--fs-small)" }}>{c.author}</strong>
+                          <span className="comment-type">{c.type || "General"}</span>
+                          <br />
+                          <span style={{ fontSize: "var(--fs-body)" }}>{c.body}</span>
+                          <br />
+                          <small className="muted">{formatActivityTime(c.createdAt)}</small>
+                        </div>
+                      )) : (
+                        <p className="muted small" style={{ margin: "10px 0" }}>No comments yet.</p>
+                      )}
+                    </div>
+                    <div className="tm-feed-compose">
+                      <div className="ctype-row">
+                        {COMMENT_TYPES.map(type => (
+                          <button
+                            key={type}
+                            type="button"
+                            className={`ctype-btn${commentType === type ? (type === "Revision" ? " active-revision" : " active") : ""}`}
+                            onClick={() => setCommentType(type)}
+                          >
+                            {type}
+                          </button>
+                        ))}
+                      </div>
+                      <textarea style={{ minHeight: 64, marginBottom: 8 }} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add comment or revision note..." />
+                      <button className="btn" style={{ width: "100%" }} onClick={addComment}>Add Comment</button>
+                    </div>
+                  </>
+                )}
+
+                {commentTab === "activity" && (
+                  <div className="tm-feed-scroll">
+                    {request.activity?.length > 0 ? request.activity.map((item) => (
                       <div className="activity-item" key={item.id}>
                         <small className="muted">{formatActivityTime(item.createdAt)}</small>
                         <div style={{ fontSize: "var(--fs-small)" }}>
@@ -1528,10 +1550,10 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
                           {item.detail ? <><br /><span className="muted">{item.detail}</span></> : null}
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <p className="muted small" style={{ margin: "10px 0" }}>No activity yet.</p>
+                    )}
                   </div>
-                ) : (
-                  <p className="muted small">No activity yet.</p>
                 )}
               </div>
             </aside>
