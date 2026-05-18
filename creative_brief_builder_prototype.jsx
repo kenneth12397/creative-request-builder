@@ -1893,18 +1893,18 @@ export default function CreativeBriefBuilderPrototype() {
 
       <div className="container">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-          <div>
-            <h1 style={{ margin: "0 0 10px", fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)" }}>Dashboard</h1>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ width: "100%" }}>
+            <h1 style={{ margin: "0 0 14px", fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)" }}>Dashboard</h1>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
               {[
-                { label: "Total", value: dashStats.total, color: "#18181b", bg: "#f4f4f5", border: "#e4e4e7" },
-                { label: "Overdue", value: dashStats.overdue, color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
-                { label: "For Revision", value: dashStats.forRevision, color: "#ea580c", bg: "#fff7ed", border: "#fed7aa" },
-                { label: "Done", value: dashStats.done, color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
-              ].map(({ label, value, color, bg, border }) => (
-                <div key={label} style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 12px", background: bg, border: `1px solid ${border}`, borderRadius: 99, fontSize: "var(--fs-small)" }}>
-                  <span style={{ fontWeight: "var(--fw-black)", color, fontSize: 15 }}>{value}</span>
-                  <span style={{ color: "#71717a" }}>{label}</span>
+                { label: "Total Requests", value: dashStats.total, accent: "#6366f1", bg: "#eef2ff" },
+                { label: "Overdue", value: dashStats.overdue, accent: "#dc2626", bg: "#fef2f2" },
+                { label: "For Revision", value: dashStats.forRevision, accent: "#ea580c", bg: "#fff7ed" },
+                { label: "Done", value: dashStats.done, accent: "#16a34a", bg: "#f0fdf4" },
+              ].map(({ label, value, accent, bg }) => (
+                <div key={label} style={{ background: "#fff", border: "1px solid #e4e4e7", borderRadius: 14, padding: "16px 20px", borderLeft: `4px solid ${accent}` }}>
+                  <div style={{ fontSize: 36, fontWeight: "var(--fw-black)", color: accent, lineHeight: 1 }}>{value}</div>
+                  <div style={{ fontSize: "var(--fs-small)", color: "#71717a", marginTop: 6 }}>{label}</div>
                 </div>
               ))}
             </div>
