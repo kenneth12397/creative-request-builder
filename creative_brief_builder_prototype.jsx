@@ -162,7 +162,12 @@ const css = `
   .info-box { border: 1px solid #e4e4e7; border-radius: 14px; padding: 12px; background: #fafafa; margin-bottom: 12px; }
   .table-ish { display: grid; gap: 8px; }
   .deliverable-detail { border: 1px solid #e4e4e7; border-radius: 12px; padding: 10px; background: white; }
-  .comment { border-bottom: 1px solid #f1f1f1; padding: 10px 0; }
+  .comment { padding: 10px 0; border-bottom: 1px solid #f1f1f1; }
+  .comment:last-child { border-bottom: none; }
+  .feed-row-header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+  .feed-row-title { font-size: 12px; font-weight: 800; color: #18181b; }
+  .feed-time { font-size: 11px; color: #a1a1aa; white-space: nowrap; flex-shrink: 0; }
+  .feed-row-body { font-size: 13px; color: #3f3f46; line-height: 1.5; }
   .asset-type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 10px 0; }
   .asset-type { border: 1px solid #d4d4d8; border-radius: 12px; padding: 9px 10px; background: white; cursor: pointer; font-weight: 850; font-size: 13px; }
   .asset-type.active { background: #18181b; color: white; border-color: #18181b; }
@@ -179,7 +184,8 @@ const css = `
   .prompt-copy-btn { width: 100%; border: 0; border-radius: 12px; padding: 11px; font-size: 14px; font-weight: 850; cursor: pointer; background: #7c3aed; color: white; transition: background .15s; }
   .prompt-copy-btn:hover { background: #6d28d9; }
   .prompt-copy-btn.copied { background: #059669; }
-  .activity-item { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-bottom: 1px solid #f1f1f1; font-size: 13px; }
+  .activity-item { padding: 8px 0; border-bottom: 1px solid #f1f1f1; }
+  .activity-item:last-child { border-bottom: none; }
   .del-composer { display: flex; flex-direction: column; gap: 6px; }
   .del-input-row { display: flex; gap: 6px; align-items: center; }
   .del-input-row input { flex: 1; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; width: auto; }
@@ -331,7 +337,9 @@ function formatActivityTime(iso) {
   if (!iso) return "—";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const isToday = date.toDateString() === new Date().toDateString();
+  if (isToday) return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function makeActivity(action, detail = "", actor = "Current User") {
@@ -1503,11 +1511,11 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
                     <div className="tm-feed-scroll">
                       {request.comments?.length > 0 ? request.comments.map((c) => (
                         <div className="comment" key={c.id}>
-                          <strong style={{ fontSize: "var(--fs-small)" }}>{c.author}</strong>
-                          <br />
-                          <span style={{ fontSize: "var(--fs-body)" }}>{c.body}</span>
-                          <br />
-                          <small className="muted">{formatActivityTime(c.createdAt)}</small>
+                          <div className="feed-row-header">
+                            <span className="feed-row-title">{c.author}</span>
+                            <span className="feed-time">{formatActivityTime(c.createdAt)}</span>
+                          </div>
+                          <div className="feed-row-body">{c.body}</div>
                         </div>
                       )) : (
                         <p className="muted small" style={{ margin: "10px 0" }}>No comments yet.</p>
@@ -1524,11 +1532,11 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
                   <div className="tm-feed-scroll">
                     {request.activity?.length > 0 ? request.activity.map((item) => (
                       <div className="activity-item" key={item.id}>
-                        <small className="muted">{formatActivityTime(item.createdAt)}</small>
-                        <div style={{ fontSize: "var(--fs-small)" }}>
-                          <strong>{item.action}</strong>
-                          {item.detail ? <><br /><span className="muted">{item.detail}</span></> : null}
+                        <div className="feed-row-header">
+                          <span className="feed-row-title">{item.action}</span>
+                          <span className="feed-time">{formatActivityTime(item.createdAt)}</span>
                         </div>
+                        {item.detail && <div className="feed-row-body muted">{item.detail}</div>}
                       </div>
                     )) : (
                       <p className="muted small" style={{ margin: "10px 0" }}>No activity yet.</p>
