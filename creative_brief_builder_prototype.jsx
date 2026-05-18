@@ -1599,8 +1599,11 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
   );
 }
 
+const DETAILS_PLACEHOLDER = `Campaign: Mid-Year Sale — 50% off selected items\nFeatured product: [main product or promo name]\nHeadline: "Your Big Win Starts Here"\nSubtext: "Play now and claim your bonus"\nCTA: "Join Now"\n\nInclude:\n- QR code (bottom-right corner)\n- Brand logo (top-left)\n- Responsible gaming text (footer strip)\n- Any required regulatory text\n\nMood: Energetic, celebratory, premium feel\nAvoid: Dark backgrounds, overly complex layouts`;
+
 function CreateRequestModal({ form, setForm, editingId, onClose, onReview }) {
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const [detailsFocused, setDetailsFocused] = useState(false);
   return (
     <div className="modal-bg" onClick={onClose}>
       <div className="modal large" style={{ maxWidth: 820, maxHeight: "92vh" }} onClick={(e) => e.stopPropagation()}>
@@ -1633,7 +1636,7 @@ function CreateRequestModal({ form, setForm, editingId, onClose, onReview }) {
 
           <Section n="2" title="Request Details">
             <p className="muted" style={{ marginTop: 0 }}>Describe what needs to be made — include copy, key elements, and any mandatory requirements.</p>
-            <textarea value={form.requestDetails} onChange={(e) => update("requestDetails", e.target.value)} placeholder={`Campaign: Mid-Year Sale — 50% off selected items\nFeatured product: [main product or promo name]\nHeadline: "Your Big Win Starts Here"\nSubtext: "Play now and claim your bonus"\nCTA: "Join Now"\n\nInclude:\n- QR code (bottom-right corner)\n- Brand logo (top-left)\n- Responsible gaming text (footer strip)\n- Any required regulatory text\n\nMood: Energetic, celebratory, premium feel\nAvoid: Dark backgrounds, overly complex layouts`} style={{ minHeight: 155 }} />
+            <textarea value={form.requestDetails} onChange={(e) => update("requestDetails", e.target.value)} onFocus={() => setDetailsFocused(true)} onBlur={() => setDetailsFocused(false)} placeholder={detailsFocused ? "" : DETAILS_PLACEHOLDER} style={{ minHeight: 155 }} />
           </Section>
 
           <Section n="3" title="Sizes">
