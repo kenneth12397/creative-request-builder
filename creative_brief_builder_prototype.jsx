@@ -1442,7 +1442,7 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
               <div className="info-box">
                 <div className="field-label">Deadline</div>
                 <div className={`tm-deadline-chip ${meta.days === null ? "" : meta.days < 0 ? "chip-overdue" : meta.days <= 7 ? "chip-soon" : "chip-safe"}`}>
-                  <span className="tm-deadline-date">📅 {formatDateFull(request.form.deadline)}</span>
+                  <span className="tm-deadline-date">{formatDateFull(request.form.deadline)}</span>
                   {meta.days !== null && (
                     <span className={`pill ${meta.badge}`} style={{ fontSize: 11, padding: "2px 7px" }}>
                       {meta.days < 0 ? `${Math.abs(meta.days)}d overdue` : meta.days === 0 ? "Due today" : `${meta.days}d left`}
