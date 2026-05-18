@@ -70,6 +70,7 @@ const css = `
   input, textarea, select { width: 100%; border: 1px solid #d4d4d8; border-radius: 12px; padding: 10px 12px; font-size: 14px; outline: none; background: white; color: #18181b; }
   textarea { min-height: 110px; resize: vertical; line-height: 1.45; }
   input:focus, textarea:focus, select:focus { border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139,92,246,.12); }
+  .modal input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
   .field { margin-bottom: 14px; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .three-row { display: grid; grid-template-columns: 1fr 1fr 100px; gap: 10px; }
