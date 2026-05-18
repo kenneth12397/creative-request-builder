@@ -1914,7 +1914,7 @@ export default function CreativeBriefBuilderPrototype() {
             <h1 style={{ margin: "0 0 14px", fontSize: "var(--fs-heading)", fontWeight: "var(--fw-black)" }}>Dashboard</h1>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
               {[
-                { label: "Total Requests", value: dashStats.total, accent: "#6366f1", bg: "#eef2ff" },
+                { label: "Total Requests", value: dashStats.total, accent: "#52525b", bg: "#f4f4f5" },
                 { label: "Overdue", value: dashStats.overdue, accent: "#dc2626", bg: "#fef2f2" },
                 { label: "For Revision", value: dashStats.forRevision, accent: "#ea580c", bg: "#fff7ed" },
                 { label: "In Progress", value: dashStats.inProgress, accent: "#3b82f6", bg: "#eff6ff" },
