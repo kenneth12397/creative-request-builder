@@ -274,7 +274,7 @@ const css = `
   .tm-feed-tab { flex: 1; background: none; border: none; border-bottom: 2px solid transparent; padding: 11px 8px 10px; font-size: var(--fs-small); font-weight: var(--fw-bold); color: #71717a; cursor: pointer; transition: color .12s, border-color .12s; margin-bottom: -1px; }
   .tm-feed-tab:hover { color: #18181b; }
   .tm-feed-tab.active { color: #18181b; border-bottom-color: #7c3aed; }
-  .tm-feed-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 16px; display: flex; flex-direction: column; gap: 0; }
+  .tm-feed-scroll { flex: 1; min-height: 150px; overflow-y: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 0; }
   .tm-feed-compose { border-top: 1px solid #e4e4e7; padding: 10px 14px; flex-shrink: 0; }
   .modal-aside { background: #f4f4f5; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
   .modal-aside .info-box { background: transparent; border: none; border-radius: 0; border-bottom: 1px solid #e4e4e7; padding: 10px 14px; margin-bottom: 0; }
