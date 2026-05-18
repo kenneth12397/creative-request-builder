@@ -352,6 +352,15 @@ function makeActivity(action, detail = "", actor = "Current User") {
   return { id: uid("ACT"), action, detail, actor, createdAt: new Date().toISOString() };
 }
 
+function normalizeActivityAction(action = "") {
+  if (/comment added/i.test(action)) return "Comment added";
+  if (/^request moved from (.+) → (.+)$/i.test(action)) {
+    const m = action.match(/→ (.+)$/i);
+    return m ? `Moved to ${m[1].trim()}` : action;
+  }
+  return action;
+}
+
 function getActivityDot(action = "") {
   if (action.includes("Revision") || action.includes("revision")) return "#f97316";
   if (action.includes("Comment") || action.includes("comment")) return "#6366f1";
@@ -1554,10 +1563,10 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
                   <div className="tm-feed-scroll">
                     {request.activity?.length > 0 ? request.activity.map((item) => (
                       <div className="activity-item" key={item.id}>
-                        <div className="activity-dot" style={{ background: getActivityDot(item.action) }} />
+                        <div className="activity-dot" style={{ background: getActivityDot(normalizeActivityAction(item.action)) }} />
                         <div className="activity-content">
                           <div className="feed-row-header">
-                            <span className="feed-row-title">{item.action}</span>
+                            <span className="feed-row-title">{normalizeActivityAction(item.action)}</span>
                             <span className="feed-time">{formatActivityTime(item.createdAt)}</span>
                           </div>
                           {item.detail && <div className="feed-row-body">{item.detail}</div>}
