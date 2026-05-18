@@ -191,6 +191,15 @@ const css = `
   .prompt-copy-btn { width: 100%; border: 0; border-radius: 12px; padding: 11px; font-size: 14px; font-weight: 850; cursor: pointer; background: #7c3aed; color: white; transition: background .15s; }
   .prompt-copy-btn:hover { background: #6d28d9; }
   .prompt-copy-btn.copied { background: #059669; }
+  .prompt-designer-box { border: 1.5px solid #e9d5ff; border-radius: 14px; background: #faf5ff; margin-bottom: 12px; overflow: hidden; }
+  .prompt-designer-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; user-select: none; gap: 10px; }
+  .prompt-designer-header:hover { background: rgba(124,58,237,.05); }
+  .prompt-designer-label { display: flex; align-items: center; gap: 8px; }
+  .prompt-designer-field-label { font-size: var(--fs-caption); font-weight: var(--fw-bold); color: #71717a; text-transform: uppercase; letter-spacing: .04em; }
+  .prompt-designer-badge { font-size: 9px; font-weight: 900; background: #7c3aed; color: white; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: .06em; }
+  .prompt-designer-chevron { color: #a1a1aa; font-size: 11px; transition: transform .2s ease; flex-shrink: 0; }
+  .prompt-designer-chevron.open { transform: rotate(180deg); }
+  .prompt-designer-body { padding: 0 14px 14px; border-top: 1px solid #e9d5ff; }
   .activity-item { padding: 8px 0; border-bottom: 1px solid #f1f1f1; }
   .activity-item:last-child { border-bottom: none; }
   .del-composer { display: flex; flex-direction: column; gap: 6px; }
@@ -264,21 +273,39 @@ const css = `
   .toast.success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
   .toast.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
   @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-  .tm-deadline-chip { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f8fafc; border: 1px solid #e4e4e7; border-radius: 10px; margin-bottom: 12px; }
-  .tm-deadline-chip.chip-overdue { background: #fef2f2; border-color: #fecaca; }
-  .tm-deadline-chip.chip-soon { background: #fffbeb; border-color: #fde68a; }
-  .tm-deadline-chip.chip-safe { background: #ecfdf5; border-color: #a7f3d0; }
-  .tm-deadline-date { font-size: 14px; font-weight: 800; color: #18181b; }
+  .tm-meta-box { padding: 8px 14px 10px; flex-shrink: 0; }
+  .tm-meta-deadline { display: flex; align-items: center; gap: 7px; padding: 6px 9px; border-radius: 8px; background: #f8fafc; border: 1px solid #e4e4e7; margin-bottom: 8px; }
+  .tm-meta-deadline.chip-overdue { background: #fef2f2; border-color: #fecaca; }
+  .tm-meta-deadline.chip-soon { background: #fffbeb; border-color: #fde68a; }
+  .tm-meta-deadline.chip-safe { background: #ecfdf5; border-color: #a7f3d0; }
+  .tm-meta-deadline-date { font-size: 13px; font-weight: 800; color: #18181b; flex: 1; }
+  .tm-meta-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .tm-meta-row-label { font-size: 10px; font-weight: 900; color: #a1a1aa; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; flex-shrink: 0; min-width: 52px; }
+  .tm-meta-select { flex: 1; border: 1.5px solid; border-radius: 8px; padding: 5px 8px; font-size: 12px; font-weight: 700; cursor: pointer; outline: none; width: auto; }
+  .tm-meta-select:focus { box-shadow: 0 0 0 3px rgba(139,92,246,.12); }
+  .tm-meta-select.s-todo { background: #f4f4f5; color: #52525b; border-color: #d4d4d8; }
+  .tm-meta-select.s-inprogress { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+  .tm-meta-select.s-forreview { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+  .tm-meta-select.s-forrevision { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+  .tm-meta-select.s-done { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+  .tm-meta-select option { background: white; color: #18181b; }
+  .tm-meta-assigned { border-color: #d4d4d8; background: white; color: #18181b; }
   .tm-feed-box { padding: 0 !important; flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .tm-feed-tabs { display: flex; border-bottom: 1px solid #e4e4e7; flex-shrink: 0; }
   .tm-feed-tab { flex: 1; background: none; border: none; border-bottom: 2px solid transparent; padding: 11px 8px 10px; font-size: var(--fs-small); font-weight: var(--fw-bold); color: #71717a; cursor: pointer; transition: color .12s, border-color .12s; margin-bottom: -1px; }
   .tm-feed-tab:hover { color: #18181b; }
   .tm-feed-tab.active { color: #18181b; border-bottom-color: #7c3aed; }
-  .tm-feed-scroll { flex: 1; min-height: 150px; overflow-y: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 0; }
-  .tm-feed-compose { border-top: 1px solid #e4e4e7; padding: 10px 14px; flex-shrink: 0; }
+  .tm-feed-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 0; }
+  .tm-feed-compose { border-top: 1px solid #e4e4e7; padding: 8px 10px; flex-shrink: 0; display: flex; gap: 8px; align-items: flex-end; }
+  .tm-feed-compose textarea { flex: 1; width: auto; min-height: 34px; max-height: 80px; resize: none; overflow-y: auto; border-radius: 10px; padding: 7px 10px; font-size: 13px; line-height: 1.4; border: 1px solid #d4d4d8; font-family: inherit; min-width: 0; }
+  .tm-feed-compose textarea:focus { border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139,92,246,.12); outline: none; }
+  .tm-feed-send-btn { flex-shrink: 0; width: 34px; height: 34px; border: 0; border-radius: 10px; background: #7c3aed; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .12s; }
+  .tm-feed-send-btn:hover { background: #6d28d9; }
+  .tm-feed-send-btn:disabled { background: #d4d4d8; cursor: not-allowed; }
   .modal-aside { background: #f4f4f5; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
-  .modal-aside .info-box { background: transparent; border: none; border-radius: 0; border-bottom: 1px solid #e4e4e7; padding: 10px 14px; margin-bottom: 0; }
+  .modal-aside .info-box { background: transparent; border: none; border-radius: 0; border-bottom: 1px solid #e4e4e7; padding: 10px 14px; margin-bottom: 0; flex-shrink: 0; }
   .modal-aside .info-box:last-child { border-bottom: none; }
+  .modal-aside .tm-feed-box { flex-shrink: 1; min-height: 130px; border-bottom: none; }
   .modal-status-select { width: 100%; border: 1.5px solid; border-radius: 10px; padding: 9px 12px; font-size: var(--fs-body); font-weight: var(--fw-bold); cursor: pointer; outline: none; }
   .modal-status-select:focus { box-shadow: 0 0 0 3px rgba(139,92,246,.12); }
   .modal-status-select.s-todo { background: #f4f4f5; color: #52525b; border-color: #d4d4d8; }
@@ -1172,6 +1199,7 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
   const [commentText, setCommentText] = useState("");
   const [commentTab, setCommentTab] = useState("comments");
   const [generatedPrompt, setGeneratedPrompt] = useState("");
+  const [promptExpanded, setPromptExpanded] = useState(false);
   const [delExpandedNotes, setDelExpandedNotes] = useState({});
   const [addingDeliverable, setAddingDeliverable] = useState(false);
   const [newDelInput, setNewDelInput] = useState("");
@@ -1301,7 +1329,6 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
       activity: [makeActivity("Comment added", body), ...(r.activity || [])],
     } : r));
     setCommentText("");
-    setCommentType("General");
   };
 
   function copyPrompt() {
@@ -1445,74 +1472,86 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
                 )}
               </div>
 
-              <div className="info-box">
-                <div className="field-label">Prompt Generator</div>
-                <div className="prompt-block" style={{ minHeight: 80 }}>
-                  {generatedPrompt || <span style={{ color: "#94a3b8", fontStyle: "italic" }}>Click Generate to build an AI prompt from this request.</span>}
+              <div className="prompt-designer-box">
+                <div className="prompt-designer-header" onClick={() => setPromptExpanded(v => !v)}>
+                  <div className="prompt-designer-label">
+                    <span className="prompt-designer-field-label">Prompt Generator</span>
+                    <span className="prompt-designer-badge">Designer</span>
+                  </div>
+                  <span className={`prompt-designer-chevron${promptExpanded ? " open" : ""}`}>▼</span>
                 </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  <button
-                    className="btn secondary"
-                    type="button"
-                    onClick={() => setGeneratedPrompt(buildComprehensivePrompt(request.form, ai))}
-                    style={{ fontSize: "var(--fs-small)", padding: "8px 16px" }}
-                  >
-                    Generate prompt
-                  </button>
-                  {generatedPrompt && (
-                    <button
-                      className={`prompt-copy-btn${copied ? " copied" : ""}`}
-                      type="button"
-                      style={{ flex: 1, marginTop: 0 }}
-                      onClick={copyPrompt}
-                    >
-                      {copied ? "✓ Copied" : "Copy"}
-                    </button>
-                  )}
-                </div>
+                {promptExpanded && (
+                  <div className="prompt-designer-body">
+                    <div className="prompt-block" style={{ minHeight: 80, background: "#fff", borderColor: "#e9d5ff" }}>
+                      {generatedPrompt || <span style={{ color: "#94a3b8", fontStyle: "italic" }}>Click Generate to build an AI prompt from this request.</span>}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                      <button
+                        className="btn secondary"
+                        type="button"
+                        onClick={() => setGeneratedPrompt(buildComprehensivePrompt(request.form, ai))}
+                        style={{ fontSize: "var(--fs-small)", padding: "8px 16px", borderColor: "#d8b4fe" }}
+                      >
+                        Generate prompt
+                      </button>
+                      {generatedPrompt && (
+                        <button
+                          className={`prompt-copy-btn${copied ? " copied" : ""}`}
+                          type="button"
+                          style={{ flex: 1, marginTop: 0 }}
+                          onClick={copyPrompt}
+                        >
+                          {copied ? "✓ Copied" : "Copy"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </main>
 
             {/* ── Right sidebar: unified property panel ── */}
             <aside className="modal-aside">
-              <div className="info-box">
-                <div className="field-label">Deadline</div>
-                <div className={`tm-deadline-chip ${meta.days === null ? "" : meta.days < 0 ? "chip-overdue" : meta.days <= 7 ? "chip-soon" : "chip-safe"}`}>
-                  <span className="tm-deadline-date">{formatDateFull(request.form.deadline)}</span>
+              <div className="info-box tm-meta-box">
+                <div className={`tm-meta-deadline ${meta.days === null ? "" : meta.days < 0 ? "chip-overdue" : meta.days <= 7 ? "chip-soon" : "chip-safe"}`}>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" style={{ flexShrink: 0, opacity: .7 }}>
+                    <circle cx="6" cy="6" r="5"/><path d="M6 3.5V6l1.5 1.5"/>
+                  </svg>
+                  <span className="tm-meta-deadline-date">{formatDateFull(request.form.deadline)}</span>
                   {meta.days !== null && (
-                    <span className={`pill ${meta.badge}`} style={{ fontSize: 11, padding: "2px 7px" }}>
+                    <span className={`pill ${meta.badge}`} style={{ fontSize: 10, padding: "2px 6px" }}>
                       {meta.days < 0 ? `${Math.abs(meta.days)}d overdue` : meta.days === 0 ? "Due today" : `${meta.days}d left`}
                     </span>
                   )}
                 </div>
-              </div>
-
-              <div className="info-box">
-                <div className="field-label">Status</div>
-                <select
-                  className={`modal-status-select ${STATUS_CLASS[request.status] || "s-todo"}`}
-                  value={request.status}
-                  onChange={(e) => changeTaskStatus(e.target.value)}
-                >
-                  {STATUS_COLUMNS.map((s) => <option key={s}>{s}</option>)}
-                </select>
-              </div>
-
-              <div className="info-box">
-                <div className="field-label">Assigned To</div>
-                <select value={request.form.assignedTo || "Unassigned"} onChange={(e) => changeAssignee(e.target.value)}>
-                  {DESIGNERS.map((d) => <option key={d}>{d}</option>)}
-                </select>
+                <div className="tm-meta-row">
+                  <span className="tm-meta-row-label">Status</span>
+                  <select
+                    className={`tm-meta-select ${STATUS_CLASS[request.status] || "s-todo"}`}
+                    value={request.status}
+                    onChange={(e) => changeTaskStatus(e.target.value)}
+                  >
+                    {STATUS_COLUMNS.map((s) => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="tm-meta-row">
+                  <span className="tm-meta-row-label">Assigned</span>
+                  <select className="tm-meta-select tm-meta-assigned" value={request.form.assignedTo || "Unassigned"} onChange={(e) => changeAssignee(e.target.value)}>
+                    {DESIGNERS.map((d) => <option key={d}>{d}</option>)}
+                  </select>
+                </div>
               </div>
 
               {(request.form.referenceImages?.length > 0 || request.form.referenceNotes) && (
                 <div className="info-box">
                   <div className="field-label">References</div>
                   {request.form.referenceImages?.length > 0 && (
-                    <div className="thumb-strip">{request.form.referenceImages.map((img) => <img className="thumb" src={img.src} alt={img.name} key={img.id} />)}</div>
+                    <div className="thumb-strip" style={{ maxHeight: 52, overflowX: "auto", overflowY: "hidden", flexWrap: "nowrap" }}>
+                      {request.form.referenceImages.map((img) => <img className="thumb" src={img.src} alt={img.name} key={img.id} style={{ width: 44, height: 44, flexShrink: 0 }} />)}
+                    </div>
                   )}
                   {request.form.referenceNotes && (
-                    <p className="small muted" style={{ marginTop: 8, whiteSpace: "pre-wrap", marginBottom: 0 }}>{request.form.referenceNotes}</p>
+                    <p className="small muted" style={{ marginTop: request.form.referenceImages?.length > 0 ? 6 : 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 0 }}>{request.form.referenceNotes}</p>
                   )}
                 </div>
               )}
@@ -1536,28 +1575,22 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
                 </div>
 
                 {commentTab === "comments" && (
-                  <>
-                    <div className="tm-feed-scroll">
-                      {request.comments?.length > 0 ? request.comments.map((c) => (
-                        <div className="comment" key={c.id}>
-                          <div className="comment-avatar">{getInitials(c.author)}</div>
-                          <div className="comment-content">
-                            <div className="feed-row-header">
-                              <span className="feed-row-title">{c.author}</span>
-                              <span className="feed-time">{formatActivityTime(c.createdAt)}</span>
-                            </div>
-                            <div className="feed-row-body">{c.body}</div>
+                  <div className="tm-feed-scroll">
+                    {request.comments?.length > 0 ? request.comments.map((c) => (
+                      <div className="comment" key={c.id}>
+                        <div className="comment-avatar">{getInitials(c.author)}</div>
+                        <div className="comment-content">
+                          <div className="feed-row-header">
+                            <span className="feed-row-title">{c.author}</span>
+                            <span className="feed-time">{formatActivityTime(c.createdAt)}</span>
                           </div>
+                          <div className="feed-row-body">{c.body}</div>
                         </div>
-                      )) : (
-                        <p className="muted small" style={{ margin: "10px 0" }}>No comments yet.</p>
-                      )}
-                    </div>
-                    <div className="tm-feed-compose">
-                      <textarea style={{ minHeight: 52, marginBottom: 6, fontSize: 13 }} value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Add a comment..." />
-                      <button className="btn" style={{ width: "100%", padding: "8px 14px", fontSize: 13 }} onClick={addComment}>Add Comment</button>
-                    </div>
-                  </>
+                      </div>
+                    )) : (
+                      <p className="muted small" style={{ margin: "10px 0" }}>No comments yet.</p>
+                    )}
+                  </div>
                 )}
 
                 {commentTab === "activity" && (
@@ -1579,6 +1612,29 @@ function TaskModal({ request, setRequests, onClose, onDelete, onEdit, onToast, o
                   </div>
                 )}
               </div>
+
+              {commentTab === "comments" && (
+                <div className="tm-feed-compose">
+                  <textarea
+                    rows={1}
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addComment(); } }}
+                    placeholder="Add a comment… (Enter to send)"
+                  />
+                  <button
+                    className="tm-feed-send-btn"
+                    type="button"
+                    onClick={addComment}
+                    disabled={!commentText.trim()}
+                    title="Send"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 7h12M7.5 1.5L13 7l-5.5 5.5"/>
+                    </svg>
+                  </button>
+                </div>
+              )}
             </aside>
           </div>
         </div>
